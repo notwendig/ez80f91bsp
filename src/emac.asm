@@ -1,14 +1,13 @@
 	nolist
-	.include "ez80F91.inc"
-	.include "emac.inc"
+	EMACREGISTER .equ 1
+	.include "phy.inc"
+	.include "bsp.inc"
 	list
 	
-	XREF	rxcontrolframe
-	XREF	rxpcontrolframe
-	XREF	rxdoneframe
-	XREF	macaddr
+	
 	XREF	_set_vector
 	XREF	__FLASH_CTL_INIT_PARAM
+	segment DATA
 
 	segment BSS
 
@@ -19,6 +18,11 @@ emacstat:		DS		EMACSTATSZ
 	.assume  ADL=1
 	
 	with  EMACSTAT
+
+$rxcontrolframe:
+$rxpcontrolframe:
+$rxdoneframe:
+				ret
 		
 $sysirq:		push	af
 				push	bc
@@ -77,7 +81,7 @@ $rxirq:			push	af
 				ld		hl,(ix+ctlfrm)
 				inc		hl
 				ld		(ix+ctlfrm),hl
-				call	rxcontrolframe
+				call	$rxcontrolframe
 				ld		a, Rx_CF_STAT
 				out0	(EMAC_ISTAT),a
 				ld		a,e
@@ -86,7 +90,7 @@ $$:				tst		a,Rx_PCF_STAT
 				ld		hl,(ix+pctlfrm)
 				inc		hl
 				ld		(ix+pctlfrm),hl
-				call	rxpcontrolframe
+				call	$rxpcontrolframe
 				ld		a, Rx_PCF_STAT
 				out0	(EMAC_ISTAT),a
 				ld		a,e				
@@ -95,7 +99,7 @@ $$:				tst		a,Rx_PCF_STAT
 				ld		hl,(ix+rxdone)
 				inc		hl
 				ld		(ix+rxdone),hl
-				call	rxdoneframe
+				call	$rxdoneframe
 				ld		a, Rx_DONE_STAT
 				out0	(EMAC_ISTAT),a				
 $$:				pop		ix
@@ -107,17 +111,29 @@ $$:				pop		ix
 				reti
 				
 $txirq:			push	af
-				push	bc
-				push	de
 				push	hl
 				push	ix
 				ld		ix,emacstat
 				in0		e,(EMAC_ISTAT)
+				ld		a,e
+				tst		a,Tx_CF
+				jr		z,$F
+				ld		hl,(ix+txcf)
+				inc		hl
+				ld		(ix+txcf),hl
+				ld		a,Tx_CF
+				out0	(EMAC_ISTAT),a
+				ld		a,e
+$$:				tst		a,Tx_DONE
+				jr		z,$F
+				ld		hl,(ix+txdone)
+				inc		hl
+				ld		(ix+txdone),hl
+				ld		a,Tx_DONE
+				out0	(EMAC_ISTAT),a
 
 $$:				pop		ix
 				pop		hl
-				pop		de
-				pop		bc
 				pop		af
 				ei				
 				reti
@@ -141,7 +157,7 @@ $give_physem:	inc		(ix+physem)
 ;
 ; write phy register in A with the value in BC
 ;
-$WtPhyReg:		call	$take_physem
+$WtPhyReg:	;	call	$take_physem
 				out0	(EMAC_CTLD_L), c
 				out0	(EMAC_CTLD_H), b
 				out0	(EMAC_RGAD), a
@@ -149,7 +165,7 @@ $WtPhyReg:		call	$take_physem
 				or		a, 80h				;indicate a write
 				out0	(EMAC_MIIMGT), a	;start a write
 $$:				call	$wait_physem
-				call	$give_physem
+			;	call	$give_physem
 				ret
 				
 				in0		a, (EMAC_MIISTAT)	;read status
@@ -160,7 +176,7 @@ $$:				call	$wait_physem
 ;
 ; read phy register in A store the value in BC (UMB is undifined)
 ;
-$RdPhyReg:		call	$take_physem
+$RdPhyReg:	;	call	$take_physem
 				out0	(EMAC_RGAD), a		;set the register to read
 				in0		a, (EMAC_MIIMGT);	;read the current settings
 				or		a, 40h				;indicate a read
@@ -169,15 +185,71 @@ $RdPhyReg:		call	$take_physem
 				ld		bc, 0
 				in0		b, (EMAC_PRSD_H)	;read high byte of data
 				in0		c, (EMAC_PRSD_L)	;read low byte of data
-				call	$give_physem
+			;	call	$give_physem
 				ret
 
-init_phy:
+$init_phy:		ld		a,PHY_ADDRESS
+				out0	(EMAC_FIAD),a
+				ld		bc,0
+				ld		a,PHY_ID1_REG
+				call	$RdPhyReg
+				ld		hl,PHY_ID1
+				xor		a,a
+				sbc		hl,bc
+				ret		nz
+				ld		a,PHY_ID2_REG
+				call	$RdPhyReg
+				ld		hl,PHY_ID2
+				xor		a,a
+				sbc		hl,bc
+				ret		nz
+				ld		bc,PHY_RST
+				ld		a,PHY_CREG
+				call	$WtPhyReg
+				ld		a,PHY_SREG
+				call	$RdPhyReg
+				ld		a,c
+				ld		bc,PHY_100BT|PHY_FULLD
+				tst		a,PHY_CAN_AUTO_NEG
+				jr		nz,$F
+				ld		a,PADEN|CRCEN
+				out0	(EMAC_CFG1),a
+				jr		$j0
+$$:				inc		(ix+autoneg)
+				ld		bc,PHY_ANEG_100_FD|PHY_ANEG_100_HD|PHY_ANEG_10_FD|PHY_ANEG_10_HD|PHY_ANEG_802_3
+				ld		a,PHY_ANEG_ADV_REG
+				call	$WtPhyReg
+				ld		bc,PHY_AUTO_NEG_ENABLE|PHY_RESTART_AUTO_NEG
+$j0:			ld		a,PHY_CREG
+				call	$WtPhyReg
+				ld		bc,0
+$waitlink:		nop
+				djnz	$waitlink
+				push	bc
+				ld		a,PHY_DIAG_REG
+				call	$RdPhyReg
+				ld		a,c
+				tst		a,PHY_AUTO_NEG_COMPLETE|PHY_LINK_ESTABLISHED
+				pop		bc
+				jr		nz,$cklink
+				dec		c
+				jr		nz,$waitlink
+$$				or		a,ffh
+				ret
+$cklink:		tst		a,PHY_LINK_ESTABLISHED 
+				jr		z,$B
+				xor		a,a
+				ret
+				
+				 
+	
+	XDEF	init_emac
 init_emac:		xor		a,a
 				out0	(EMAC_IEN),a
 				ld		a,SRST|HRTFN|HRRFN|HRTMC|HRRMC|HRMGT
 				out0	(EMAC_RST),a
 				ld		ix,emacstat
+				ld		iy,syscfg
 				lea		hl,ix+0
 				lea		de,ix+1
 				ld		bc,EMACSTATSZ-1
@@ -187,7 +259,7 @@ init_emac:		xor		a,a
 				ldir
 				out0	(EMAC_RST),a
 				out0	(EMAC_TEST),a
-				ld		hl,macaddr
+				lea		hl,iy+SYSCFG.emac.macaddr
 				ld		c,EMAC_STAD_0
 				ld		b,6
 				otimr
@@ -195,7 +267,7 @@ init_emac:		xor		a,a
 				ld		c,EMAC_STAD_0
 				ld		b,6
 				inimr
-				ld		hl,macaddr
+				lea		hl,iy+SYSCFG.emac.macaddr
 				lea		de,ix+srcmac
 				ld		bc,6
 				cpir
@@ -204,12 +276,12 @@ init_emac:		xor		a,a
 				ret
 $$:				ld		a,ffh
 				out0	(EMAC_ISTAT),a
-				ld		a,EMACFG_BUFSZ
+				ld		a,BUFSZ32
 				out0	(EMAC_BUFSZ),a
 				ld		hl,14h
 				out0	(EMAC_TPTV_L),l
 				out0	(EMAC_TPTV_H),h
-				ld		iy,#(__FLASH_CTL_INIT_PARAM << 16)+ C000h
+				ld		iy,#(__RAM_ADDR_U_INIT_PARAM << 16)+ C000h
 				xor		a,a
 				ld		(iy+MACDESCRIPTOR.STATUS),a
 				ld		hl,iy
@@ -217,8 +289,10 @@ $$:				ld		a,ffh
 				out0	(EMAC_TLBP_L),l
 				ld		(ix+txwp),hl
 				ld		(ix+txrp),hl
-				inc		h
-				ld		a,__FLASH_CTL_INIT_PARAM
+				ld		a,10h
+				add		a,h
+				ld		h,a
+				ld		a,__RAM_ADDR_U_INIT_PARAM
 				out0	(EMAC_BP_U),a
 				out0	(EMAC_BP_H),h
 				out0	(EMAC_BP_L),l
@@ -226,7 +300,9 @@ $$:				ld		a,ffh
 				out0	(EMAC_RRP_L),l
 				ld		(ix+rxwp),hl
 				ld		(ix+rxrp),hl
-				inc		h
+				ld		a,10h
+				add		a,h
+				ld		h,a
 				out0	(EMAC_RHBP_H),h
 				out0	(EMAC_RHBP_L),l
 				ld		(ix+rxhigh),hl
@@ -253,10 +329,10 @@ endif
 				out0	(EMAC_MIIMGT),a
 				ld		a,HRTFN|HRRFN|HRTMC|HRRMC
 				out0	(EMAC_RST),a
-				call	init_phy
+				call	$init_phy
 				ld		a,0
 				out0	(EMAC_RST),a
-				ret		z
+				ret		nz
 				dec		a
 				out0	(EMAC_ISTAT),a
 				ld		hl,$rxirq
