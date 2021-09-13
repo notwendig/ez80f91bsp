@@ -1,19 +1,4 @@
 
-MGTBUSY			EQU	80h
-PHY_ADDRESS		EQU 001Fh
-PHY_ID1_REG		EQU	2
-PHY_ID2_REG		EQU	3
-PHY_ID1			EQU	0022h
-PHY_ID2			EQU	561Bh
-PHY_RST			EQU	8000h
-PHY_LINK_EST	EQU	04h
-PHY_CREG		EQU	0
-PHY_SREG		EQU	1
-PHY_DIAG_REG	EQU	18
-PHY_FULLD		EQU 0100h
-PHY_100BT		EQU	2000h
-PHY_POWER_DOWN	EQU 0800h
-
 EMAC_Rx_IVECT	.equ	40h
 EMAC_Tx_IVECT	.equ	44h
 EMAC_Sys_IVECT	.equ	48h
@@ -81,6 +66,10 @@ PKTSIZE:		DS		2
 STATUS:			DS		2
 MACDESCRIPTORSZ endstruct MACDESCRIPTOR
 
+EMACCFG			struct
+macaddr:		DS		6
+EMACCFGSZ		endstruct EMACCFG
+
 ETHHDR			struct
 destmac:		DS		6
 srcmac:			DS		6
@@ -95,25 +84,27 @@ ctlfrm:			DS		3
 pctlfrm:		DS		3
 rxdone:			DS		3
 physem:			DS		1
+autoneg:		DS		1	
 srcmac:			DS		6
 rxhigh:			DS		3
 txwp:			DS		3
 txrp:			DS		3
 rxwp:			DS		3
 rxrp:			DS		3
+txcf:			DS		3
+txdone:			DS		3	
 EMACSTATSZ		endstruct EMACSTAT
-
-EMACFG_BUFSZ	.equ	BUFSZ32
 
 EMACERR_SETMAC	.equ	-1
 
+ifdef EMACREGISTER
 ; EMAC Registers
 ; After a system reset, all EMAC registers are set to their default values. Any Writes to
 ; unused registers or register bits are ignored and reads return a value of 0. For compatibil-
 ; ity with future revisions, unused bits within a register must always be written with a value
 ; of 0. Read/Write attributes, reset conditions, and bit descriptions of all of the EMAC reg-
 ; isters are provided in this section.
-
+    
 ;                EMAC Test Register
 ;                The EMAC Test Register allows test functionality of the EMAC block. Available test
 ;                modes are defined for bits [6:0].
@@ -1204,13 +1195,10 @@ Tx_DONE_STAT	.equ	00000001b
 ;1               1        Receive FIFO almost empty
 ;RFAE
 ;                0        Receive FIFO not almost empty
-;0               1        Receive FIFO empty
+;0               133        Receive FIFO empty
 ;RFE
 ;                0        Receive FIFO not empty
 
 
-
-
-;PS019216-0316
-;
+endif	; EMACREGISTER
 
