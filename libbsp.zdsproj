@@ -5,6 +5,7 @@
 <files>
 <file filter-key="">src\bsp.asm</file>
 <file filter-key="">src\console.asm</file>
+<file filter-key="">src\emac.asm</file>
 <file filter-key="">src\uart.asm</file>
 </files>
 
