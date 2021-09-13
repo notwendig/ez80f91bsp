@@ -226,7 +226,6 @@ init_uart0:
 			ld		ix,uart0
 			lea		hl,ix+0
 			lea		de,ix+1
-			inc		de
 			ld		bc,UARTSTATSZ-1 
 			xor		a,a
 			ld		(hl),a
