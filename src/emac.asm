@@ -157,7 +157,7 @@ $give_physem:	inc		(ix+physem)
 ;
 ; write phy register in A with the value in BC
 ;
-$WtPhyReg:		call	$take_physem
+$WtPhyReg:	;	call	$take_physem
 				out0	(EMAC_CTLD_L), c
 				out0	(EMAC_CTLD_H), b
 				out0	(EMAC_RGAD), a
@@ -165,7 +165,7 @@ $WtPhyReg:		call	$take_physem
 				or		a, 80h				;indicate a write
 				out0	(EMAC_MIIMGT), a	;start a write
 $$:				call	$wait_physem
-				call	$give_physem
+			;	call	$give_physem
 				ret
 				
 				in0		a, (EMAC_MIISTAT)	;read status
@@ -176,7 +176,7 @@ $$:				call	$wait_physem
 ;
 ; read phy register in A store the value in BC (UMB is undifined)
 ;
-$RdPhyReg:		call	$take_physem
+$RdPhyReg:	;	call	$take_physem
 				out0	(EMAC_RGAD), a		;set the register to read
 				in0		a, (EMAC_MIIMGT);	;read the current settings
 				or		a, 40h				;indicate a read
@@ -185,7 +185,7 @@ $RdPhyReg:		call	$take_physem
 				ld		bc, 0
 				in0		b, (EMAC_PRSD_H)	;read high byte of data
 				in0		c, (EMAC_PRSD_L)	;read low byte of data
-				call	$give_physem
+			;	call	$give_physem
 				ret
 
 $init_phy:		ld		a,PHY_ADDRESS
@@ -209,18 +209,18 @@ $init_phy:		ld		a,PHY_ADDRESS
 				ld		a,PHY_SREG
 				call	$RdPhyReg
 				ld		a,c
-				ld		bc,0
+				ld		bc,PHY_100BT|PHY_FULLD
 				tst		a,PHY_CAN_AUTO_NEG
 				jr		nz,$F
 				ld		a,PADEN|CRCEN
 				out0	(EMAC_CFG1),a
 				jr		$j0
-$$:				ld		bc,PHY_AUTO_NEG_ENABLE|PHY_RESTART_AUTO_NEG
-				inc		(ix+autoneg)
-$j0:			ld		hl,PHY_100BT|PHY_FULLD
-				add		hl,bc
-				ld		bc,hl
-				ld		a,PHY_CREG
+$$:			inc		(ix+autoneg)
+				ld		bc,PHY_ANEG_100_FD|PHY_ANEG_100_HD|PHY_ANEG_10_FD|PHY_ANEG_10_HD|PHY_ANEG_802_3
+				ld		a,PHY_ANEG_ADV_REG
+				call	$WtPhyReg
+				ld		bc,PHY_AUTO_NEG_ENABLE|PHY_RESTART_AUTO_NEG
+$j0:		ld		a,PHY_CREG
 				call	$WtPhyReg
 				ld		bc,0
 $waitlink:		nop
@@ -234,7 +234,7 @@ $waitlink:		nop
 				jr		nz,$cklink
 				dec		c
 				jr		nz,$waitlink
-$$				or		a,ffh
+$$:			or		a,ffh
 				ret
 $cklink:		tst		a,PHY_LINK_ESTABLISHED 
 				jr		z,$B
@@ -259,7 +259,7 @@ init_emac:		xor		a,a
 				ldir
 				out0	(EMAC_RST),a
 				out0	(EMAC_TEST),a
- 
+				lea		hl,iy+SYSCFG.emac.macaddr
 				ld		c,EMAC_STAD_0
 				ld		b,6
 				otimr
@@ -274,14 +274,14 @@ init_emac:		xor		a,a
 				jr		z,$F
 				ld		a,EMACERR_SETMAC
 				ret
-$$:				ld		a,ffh
+$$:			ld		a,ffh
 				out0	(EMAC_ISTAT),a
 				ld		a,BUFSZ32
 				out0	(EMAC_BUFSZ),a
 				ld		hl,14h
 				out0	(EMAC_TPTV_L),l
 				out0	(EMAC_TPTV_H),h
-				ld		iy,#(__FLASH_CTL_INIT_PARAM << 16)+ C000h
+				ld		iy,#(__RAM_ADDR_U_INIT_PARAM << 16)+ C000h
 				xor		a,a
 				ld		(iy+MACDESCRIPTOR.STATUS),a
 				ld		hl,iy
@@ -289,8 +289,10 @@ $$:				ld		a,ffh
 				out0	(EMAC_TLBP_L),l
 				ld		(ix+txwp),hl
 				ld		(ix+txrp),hl
-				inc		h
-				ld		a,__FLASH_CTL_INIT_PARAM
+				ld		a,10h
+				add		a,h
+				ld		h,a
+				ld		a,__RAM_ADDR_U_INIT_PARAM
 				out0	(EMAC_BP_U),a
 				out0	(EMAC_BP_H),h
 				out0	(EMAC_BP_L),l
@@ -298,7 +300,9 @@ $$:				ld		a,ffh
 				out0	(EMAC_RRP_L),l
 				ld		(ix+rxwp),hl
 				ld		(ix+rxrp),hl
-				inc		h
+				ld		a,10h
+				add		a,h
+				ld		h,a
 				out0	(EMAC_RHBP_H),h
 				out0	(EMAC_RHBP_L),l
 				ld		(ix+rxhigh),hl

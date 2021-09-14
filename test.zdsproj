@@ -8,6 +8,10 @@
 <file filter-key="">test\main.asm</file>
 <file filter-key="">test\vectors24.asm</file>
 <file filter-key="">test\zsldevinitdummy.asm</file>
+<file filter-key="">src\bsp.asm</file>
+<file filter-key="">src\console.asm</file>
+<file filter-key="">src\emac.asm</file>
+<file filter-key="">src\uart.asm</file>
 </files>
 
 <!-- configuration information -->
@@ -90,7 +94,7 @@ DEFINE __len_code = length of CODE</option>
 <option name="linkctlfile" type="string" change-action="build"></option>
 <option name="map" type="boolean" change-action="none">true</option>
 <option name="maxhexlen" type="integer" change-action="build">64</option>
-<option name="objlibmods" type="string" change-action="build">.\libbspd.lib</option>
+<option name="objlibmods" type="string" change-action="build"></option>
 <option name="of" type="string" change-action="build">.\testbsp</option>
 <option name="quiet" type="boolean" change-action="none">true</option>
 <option name="relist" type="boolean" change-action="build">true</option>
@@ -213,10 +217,38 @@ DEFINE __len_code = length of CODE</option>
 
 <!-- breakpoint information -->
 <breakpoints>
+<breakpoint temporary="false" enabled="false" >
+<line-number>117</line-number>
+<pathname>Z:\workspace\ez80f91bsp\src\emac.asm</pathname>
+<address>863</address>
+<command></command>
+<preserve-type>0</preserve-type>
+</breakpoint>
+<breakpoint temporary="false" enabled="false" >
+<line-number>76</line-number>
+<pathname>Z:\workspace\ez80f91bsp\src\emac.asm</pathname>
+<address>771</address>
+<command></command>
+<preserve-type>0</preserve-type>
+</breakpoint>
+<breakpoint temporary="false" enabled="false" >
+<line-number>32</line-number>
+<pathname>Z:\workspace\ez80f91bsp\src\emac.asm</pathname>
+<address>681</address>
+<command></command>
+<preserve-type>0</preserve-type>
+</breakpoint>
 <breakpoint temporary="false" enabled="true" >
-<line-number>29</line-number>
-<pathname>Z:\workspace\ez80f91bsp\src\bsp.asm</pathname>
-<address>623</address>
+<line-number>237</line-number>
+<pathname>Z:\workspace\ez80f91bsp\src\emac.asm</pathname>
+<address>1109</address>
+<command></command>
+<preserve-type>0</preserve-type>
+</breakpoint>
+<breakpoint temporary="false" enabled="true" >
+<line-number>240</line-number>
+<pathname>Z:\workspace\ez80f91bsp\src\emac.asm</pathname>
+<address>1115</address>
 <command></command>
 <preserve-type>0</preserve-type>
 </breakpoint>
