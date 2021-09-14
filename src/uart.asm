@@ -313,6 +313,12 @@ $endstr:	ld		hl,bc
 			pop		bc
 			ret
 
+	xref uart0_gets						; de => c-str, bc = max
+uart0_gets:
+	; todo
+	ret
+
+
 	segment TEXT
 $uart0itbl:	DW24 i_ms					; 000 0 Lowest Modem Status	
 			DB		0

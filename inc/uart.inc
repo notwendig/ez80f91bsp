@@ -7,6 +7,7 @@
 	xref uart0_kbhit					; a!=0 => key pressed 
 	xref uart0_getc						; char => a
 	xref uart0_puts						; de => c-str
+	xref uart0_gets						; de => c-str, bc = max
 	
 UARTSTAT		struct	
 rrx:			DS		3

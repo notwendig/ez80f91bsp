@@ -55,8 +55,12 @@
 	xref critical_bgn
 	xref critical_end
 	xref fatal
+
 	xref syscfg
 	xref init_emac
+	
 SYSCFG		struct 
 emac		.TAG	EMACCFG
 SYSCFGSZ	endstruct SYSCFG	
+
+syscfg .tag SYSCFG

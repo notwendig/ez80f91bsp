@@ -68,6 +68,9 @@ MACDESCRIPTORSZ endstruct MACDESCRIPTOR
 
 EMACCFG			struct
 macaddr:		DS		6
+bufsz: 			DS		1			; reg const
+bufalign:		DS		1			; buffer size -1
+bp:				DS		3			; end of tx buffer, start of rx buffer
 EMACCFGSZ		endstruct EMACCFG
 
 ETHHDR			struct
@@ -97,7 +100,6 @@ EMACSTATSZ		endstruct EMACSTAT
 
 EMACERR_SETMAC	.equ	-1
 
-ifdef EMACREGISTER
 ; EMAC Registers
 ; After a system reset, all EMAC registers are set to their default values. Any Writes to
 ; unused registers or register bits are ignored and reads return a value of 0. For compatibil-
@@ -116,7 +118,7 @@ EMAC_TEST	.equ	0020h
 ;CPU Access                 R     R/W      R/W     R/W     R/W      R/W    R/W         R/W
 ;Bit Position       Value    Description
 ;7                  0        Reserved.
-;6                  0        FIFO test mode disabled—Normal operation.
+;6                  0        FIFO test mode disabled Normal operation.
 ;                   1        FIFO test mode enabled.
 TEST_FIFO	.equ	01000000b
 ;5                  0        Select the Receive FIFO when FIFO test mode is enabled.
@@ -235,7 +237,7 @@ BPNB		.equ	10000000b
 ;                          than use the binary exponential backfill algorithm, as specified
 ;                          in the IEEE 802.3 specification.
 NOBO		.equ	01000000b
-;[5:0]           00h–3Fh   Sets the number of bytes after Start Frame Delimiter (SFD) for
+;[5:0]           00h-3Fh   Sets the number of bytes after Start Frame Delimiter (SFD) for
 ;                          which a late collision occurs. By default, all late collisions are
 ;                          aborted.
 LCOL_MSK	.equ	00111111b
@@ -267,7 +269,7 @@ XSDFR		.equ	00100000b
 ;4                0         Disable 10 Mbps ENDEC mode.
 ;                 1         Enable 10 Mbps ENDEC mode.
 BITMD		.equ	00010000b
-;[3:0]            0h–Fh     A programmable field specifying the number of retransmission
+;[3:0]            0h-Fh     A programmable field specifying the number of retransmission
 ;                      attempts following a collision before aborting the packet due to
 ;                           excessive collisions.
 RETRY_MSK	.equ	00001111b
@@ -312,7 +314,7 @@ RxEN		.equ	00000001b
 
 ;                EMAC Station Address Register
 ;                The EMAC Station Address register is used for two functions. In the address recogni-
-;                tion logic for Receive frames, EMAC_STAD_0–EMAC_STAD_5 are matched against
+;                tion logic for Receive frames, EMAC_STAD_0-EMAC_STAD_5 are matched against
 ;                the sixth byte Destination Address (DA) field of the Receive frame. EMAC_STAD_0 is
 ;                matched against the first byte of the Receive frame, and EMAC_STAD_5 is matched
 ;                against the sixth byte of the Receive frame. Bit 0 of EMAC_STAD_0 (STAD[40]) is
@@ -341,12 +343,12 @@ EMAC_STAD_5	.equ	002Ah
 ;EMAC_STAD_x Reset            0       0       0      0       0       0      0        0
 ;CPU Access                  R/W    R/W     R/W     R/W    R/W     R/W     R/W     R/W
 ;Bit Position      Value    Description
-;[7:0]             00h–FFh  This 48-bit station address comprises {EMAC_STAD_5,
+;[7:0]             00h-FFh  This 48-bit station address comprises {EMAC_STAD_5,
 ;EMAC_STAD_x                EMAC_STAD_4, EMAC_STAD_3, EMAC_STAD_2,
 ;                           EMAC_STAD_1, EMAC_STAD_0}.
 
 
-;                EMAC Transmit Pause Timer Value Register—Low and High Bytes
+;                EMAC Transmit Pause Timer Value Register Low and High Bytes
 ;                The Low and High bytes of the EMAC Transmit Pause Timer Value Register are inserted
 ;                into outgoing pause control frames. See Table 187 and Table 188.
 
@@ -356,7 +358,7 @@ EMAC_TPTV_H	.equ	002Ch
 ;Reset                        0      0      0       0      0       0       0       0
 ;CPU Access                 R/W    R/W     R/W    R/W     R/W     R/W    R/W     R/W
 ;Bit Position      Value    Description
-;[7:0]             00h–FFh  The 16-bit value, {EMAC_TPTV_H, EMAC_TPTV_L}, is
+;[7:0]             00h-FFh  The 16-bit value, {EMAC_TPTV_H, EMAC_TPTV_L}, is
 ;EMAC_TPTV_x                inserted into outgoing pause control frames as the pause
 ;                           timer value upon asserting TPCF.
 
@@ -373,10 +375,10 @@ EMAC_IPGT	.equ	002Dh
 ;        CPU Access                 R        R/W      R/W        R/W      R/W     R/W      R/W   R/W
 ;Bit Position    Value     Description
 ;7               0         Reserved.
-;[6:0]           00h–7Fh The number of bytes of IPG.
+;[6:0]           00h-7Fh The number of bytes of IPG.
 IPGT_MSK	.equ	01111111b
 
-;                EMAC Non-Back-To-Back IPG Register—Part 1
+;                EMAC Non-Back-To-Back IPG Register Part 1
 ;                Part 1 of the EMAC non-back-to-back IPG Register is a programmable field representing
 ;                the optional carrier sense window referenced in IEEE 802.3/4.2.3.2.1 Carrier Deference. If
 ;                a carrier is detected during the timing of IPGR1, the EMAC defers to the carrier. If, how-
@@ -392,12 +394,12 @@ EMAC_IPGR1	.equ	002Eh
 ;CPU Access               R/W      R/W     R/W     R/W     R/W     R/W     R/W     R/W
 ;Bit Position    Value    Description
 ;7               0        Reserved.
-;[6:0]           00h–7Fh  This is a programmable field representing the optional carrier
+;[6:0]           00h-7Fh  This is a programmable field representing the optional carrier
 ;                         sense window referenced in IEEE 802.3/4.2.3.2.1 Carrier
 ;                         Deference.
 IPGR1_MSK	.equ	01111111b
 
-;                EMAC Non-Back-To-Back IPG Register—Part 2
+;                EMAC Non-Back-To-Back IPG Register Part 2
 ;                Part 2 of the EMAC non-back-to-back IPG Register is a programmable field representing
 ;                the non-back-to-back IPG. Its default is12h, which represents the minimum IPG of
 ;                0.96 µs at 100 Mbps or 9.6 µs at 10 Mbps. See Table 193 on page 309.
@@ -408,18 +410,18 @@ EMAC_IPGR2	.equ	002Fh
 ;CPU Access                 R      R/W     R/W      R/W     R/W     R/W     R/W      R/W
 ;Bit Position    Value      Description
 ;7               0          Reserved.
-;[6:0]           00h–7Fh    This bit range is a programmable field representing the non-
+;[6:0]           00h-7Fh    This bit range is a programmable field representing the non-
 ;                           back-to-back interpacket gap.
 IPGR2_MSK		.equ	01111111b
 
-;                EMAC Maximum Frame Length Register—Low and High Bytes
+;                EMAC Maximum Frame Length Register Low and High Bytes
 EMAC_MAXF_L	.equ	0030h
 EMAC_MAXF_H	.equ	0031h
 ;Bit                         7        6         5     4     3       2       1        0
 ;Reset                       0        0         0     0     0       0       0       0
 ;CPU Access                 R/W      R/W       R/W   R/W   R/W     R/W     R/W     R/W
 ;Bit Position                Value        Description
-;[7:0]              00h–FFh  These bits represent the Low byte of the 2 byte MAXF
+;[7:0]              00h-FFh  These bits represent the Low byte of the 2 byte MAXF
 ;                            value, {EMAC_MAXF_H, EMAC_MAXF_L}. Bit 7 is bit 7 of
 ;                            the 16-bit value. Bit 0 is bit 0 (lsb) of the 16-bit value.
 
@@ -474,7 +476,7 @@ EMAC_HTBL_7	.equ	003Ah
 ;EMAC_HTBL_x Reset             0       0        0       0       0       0       0        0
 ;CPU Access                   R/W     R/W     R/W     R/W     R/W      R/W     R/W     R/W
 ;Bit Position               Value     Description
-;[7:0]              00h–FFh This field is the hash table. The 64 bit hash table is
+;[7:0]              00h-FFh This field is the hash table. The 64 bit hash table is
 ;EMAC_HTBL_x                {EMAC_HTBL_7, EMAC_HTBL_6, EMAC_HTBL_5,
 ;                           EMAC_HTBL_4, EMAC_HTBL_3, EMAC_HTBL_2,
 ;                           EMAC_HTBL_1, EMAC_HTBL_0}.
@@ -490,18 +492,18 @@ EMAC_MIIMGT	.equ	003Bh
 ;7               1         Rising edge causes the CTLD control data to be transmitted to
 ;                          external PHY if MII is not busy. This bit is self clearing.
 ;                0         No operation.
-LCTLD		.equ	1000000b
+LCTLD		.equ	10000000b
 ;6               1         Rising edge causes status to be read from external PHY via
 ;                          PRSD[15:0] bus if MII is not busy. This bit is self clearing.
 ;                0         No operation.
-RSTAT		.equ	0100000b
+RSTAT		.equ	01000000b
 ;5               1         Scan PHY address increments upon SCAN cycle. The SCAN
 ;                          bit must also be set for the PHY address to increment after
 ;                          each scan. The scanning starts at the EMAC_FIAD and
 ;                          increments up to 1Fh. It then returns to the EMAC_FIAD
 ;                          address.
 ;                0         Normal operation.
-SCINC		.equ	0010000b
+SCINC		.equ	00100000b
 ;4               1         Perform continuous Read cycles via MII management. While in
 ;                          SCAN mode, the EMAC_ISTAT[MGTDONE] bit is set when the
 ;                          current PHY Read has completed. At this time, the
@@ -527,7 +529,7 @@ CLKS_20		.equ	110b      ; MDC = SCLK ÷ 20.
 CLKS_28		.equ	111b      ; MDC = SCLK ÷ 28.
 CLKS_MSK	.equ	00000111b
 
-;                EMAC PHY Configuration Data Register—Low and High Byte
+;                EMAC PHY Configuration Data Register Low and High Byte
 ;                The Low and High bytes of the EMAC PHY Configuration Data Register represents the
 ;                configuration data written to the external PHY. The EMAC_CTLD_H and
 ;                EMAC_CTLD_L registers form a 16-bit register. These registers are loaded with data to
@@ -541,7 +543,7 @@ EMAC_CTLD_H	.equ	003Dh
 ;Reset                       0      0         0      0       0       0       0       0
 ;CPU Access                 R/W    R/W      R/W    R/W     R/W     R/W      R/W     R/W
 ;Bit Position      Value   Description
-;[7:0]             00h–FFh These bits represent the Low byte of the 2 byte PHY
+;[7:0]             00h-FFh These bits represent the Low byte of the 2 byte PHY
 ;                          configuration data value, {EMAC_CTLD_H, EMAC_CTLD_L}.
 ;                          Bit 7 is bit 7 of the 16 bit value. Bit 0 is bit
 ;                          0 (lsb) of the 16 bit value.
@@ -556,7 +558,7 @@ EMAC_RGAD	.equ	003Eh
 ;CPU Access                 R       R      R     R/W     R/W     R/W     R/W     R/W
 ;Bit Position   Value   Description
 ;[7:5]          000     Reserved.
-;[4:0]          00h–1Fh Programmable 5 bit value which selects address within the
+;[4:0]          00h-1Fh Programmable 5 bit value which selects address within the
 ;                       selected external PHY.
 RGAD_MSK	.equ	00011111b
 ;                EMAC PHY Unit Select Address Register
@@ -569,7 +571,7 @@ EMAC_FIAD	.equ	003Fh
 ;CPU Access                 R        R        R      R/W     R/W      R/W     R/W      R/W
 ;Bit Position    Value      Description
 ;[7:5]           000        Reserved.
-;[4:0]           00h–1Fh    Programmable 5-bit value that selects an external PHY.
+;[4:0]           00h-1Fh    Programmable 5-bit value that selects an external PHY.
 FIAD_MSK	.equ	00011111b
 
 
@@ -587,7 +589,7 @@ EMAC_PTMR	.equ	0040h
 ;Reset                       0       0        0       0        0        0       0        0
 ;CPU Access                R/W      R/W     R/W      R/W     R/W      R/W     R/W      R/W
 ;Bit Position     Value       Description
-;[7:0]            00h–FFh     The Transmit polling period.
+;[7:0]            00h-FFh     The Transmit polling period.
 
 ;                EMAC Reset Control Register
 ;                The bit values in the EMAC Reset Control Register are not self-clearing bits. You are
@@ -599,7 +601,7 @@ EMAC_RST	.equ	0041h
 ;CPU Access                 R       R      R/W      R/W    R/W     R/W     R/W     R/W
 ;Bit Position    Value    Description
 ;[7:6]           00       Reserved
-;5               1        Software Reset Active—resets Receive, Transmit, EMAC
+;5               1        Software Reset Active resets Receive, Transmit, EMAC
 ;                         Control and EMAC MII_MGT functions
 ;                0        Normal operation
 SRST		.equ	00100000b
@@ -619,7 +621,7 @@ HRRMC		.equ	00000010b
 ;                0        Normal operation
 HRMGT		.equ	00000001b
 
-;                 EMAC Transmit Lower Boundary Pointer Register—Low and High Bytes
+;                 EMAC Transmit Lower Boundary Pointer Register Low and High Bytes
 ;                 The EMAC Transmit Lower Boundary Pointer is set to the start of the Transmit buffer in
 ;                 EMAC shared memory. See Table 205 and Table 206.
 
@@ -629,7 +631,7 @@ EMAC_TLBP_L	.equ	0042h
 ;CPU Access                   R/W      R/W     R/W       R          R    R     R       R
 ;Bit
 ;Position            Value     Description
-;[7:0]               00h–E0h   These bits represent the High byte of the 2 byte Transmit
+;[7:0]               00h-E0h   These bits represent the High byte of the 2 byte Transmit
 ;EMAC_TLBP_L                   Lower Boundary Pointer value, {EMAC_TLBP_H,
 ;                              EMAC_TLBP_L}. Bit 7 is bit 7 of the 16 bit value. Bit
 ;                              0 is bit 0 of the 16-bit value.
@@ -639,12 +641,12 @@ EMAC_TLBP_H	.equ	0043h
 ;Reset                        1        1        0        0          0    0     0       0
 ;CPU Access                   R        R        R      R/W      R/W     R/W   R/W     R/W
 ;Bit Position        Value     Description
-;[7:0]               00h–1Fh   These bits represent the High byte of the 2 byte Transmit
+;[7:0]               00h-1Fh   These bits represent the High byte of the 2 byte Transmit
 ;EMAC_TLBP_H                   Lower Boundary Pointer value, {EMAC_TLBP_H,
 ;                              EMAC_TLBP_L}. Bit 7 is bit 15 (msb) of the 16 bit value. Bits
 ;                              7:5 default to 000 on reset; bit 0 is bit 8 of the 16-bit value.
 
-;                EMAC Boundary Pointer Register—Low and High Bytes
+;                EMAC Boundary Pointer Register Low and High Bytes
 ;                The Boundary Pointer is set to the start of the Receive buffer (end of Transmit buffer +1)
 ;                in EMAC shared memory. This pointer is 24 bits and determined by {RAM_ADDR_U,
 ;                EMAC_BP_H, EMAC_BP_L}. The upper 3 bits of the EMAC_BP_H register are hard-
@@ -657,7 +659,7 @@ EMAC_BP_L	.equ	0044h
 ;Reset                      0        0       0        0       0        0       0        0
 ;CPU Access                R/W     R/W     R/W       R        R       R        R       R
 ;Bit Position    Value    Description
-;[7:0]           00h–FFh  These bits represent the Low byte of the 3 byte EMAC
+;[7:0]           00h-FFh  These bits represent the Low byte of the 3 byte EMAC
 ;EMAC_BP_L                Boundary Pointer value, {EMAC_BP_U, EMAC_BP_H,
 ;                         EMAC_BP_L}. Bit 7 is bit 7 of the 24 bit value. Bit 0 is bit 0 of
 ;                         the 24 bit value.
@@ -666,12 +668,12 @@ EMAC_BP_H	.equ	0045h
 ;Reset                      1        1       0        0       0        0       0        0
 ;CPU Access                 R       R        R      R/W     R/W      R/W     R/W      R/W
 ;Bit Position    Value   Description
-;[7:0]           00h–FFh These bits represent the High byte of the 3 byte EMAC
+;[7:0]           00h-FFh These bits represent the High byte of the 3 byte EMAC
 ;EMAC_BP_H               Boundary Pointer value, {EMAC_BP_U, EMAC_BP_H,
 ;                        EMAC_BP_L}. Bit 7 is bit 15 of the 24 bit value. Bit 0 is bit 8 of
 ;                        the 24 bit value.
 
-;                EMAC Boundary Pointer Register—Upper Byte
+;                EMAC Boundary Pointer Register Upper Byte
 ;                The EMAC Boundary Pointer Register maps directly to the RAM_ADDR_U register
 ;                within the eZ80F91 device. This register value is Read Only. See Table 209 on page 320.
 EMAC_BP_U	.equ	0046h
@@ -679,13 +681,13 @@ EMAC_BP_U	.equ	0046h
 ;Reset                       1        1         1    1       1        1       1       1
 ;CPU Access                 R         R        R     R       R       R        R       R
 ;Bit Position    Value   Description
-;[7:0]           00h–FFh These bits represent the upper byte of the 3 byte EMAC
+;[7:0]           00h-FFh These bits represent the upper byte of the 3 byte EMAC
 ;EMAC_BP_U               Boundary Pointer value, {EMAC_BP_U, EMAC_BP_H,
 ;                        EMAC_BP_L}. Bit 7 is bit 23 of the 24 bit value. Bit 0 is bit 16 of
 ;                        the 24 bit value.
 
 
-;                EMAC Receive High Boundary Pointer Register—Low and High Bytes
+;                EMAC Receive High Boundary Pointer Register Low and High Bytes
 ;                The Receive High Boundary Pointer Register must be set to the end of the Receive buffer
 ;                +1 in EMAC shared memory. This RHBP uses the same RAM_ADDR_U as the
 ;                EMAC_BP_U pointer above. See Table 210 and Table 211 on page 321.
@@ -694,7 +696,7 @@ EMAC_RHBP_L	.equ	0047h
 ;Reset                       0        0         0    0       0        0       0       0
 ;CPU Access                 R/W      R/W       R/W   R       R       R        R       R
 ;Bit Position       Value   Description
-;[7:0]              00h–E0h These bits represent the Low byte of the 2 byte EMAC
+;[7:0]              00h-E0h These bits represent the Low byte of the 2 byte EMAC
 ;EMAC_RHBP_L                Receive High Boundary Pointer value, {EMAC_RHBP_H,
 ;                           EMAC_RHBP_L}. Bit 7 is bit 7 of the 16 bit value. Bit 0 is bit
 ;                           0 (lsb) of the 16 bit value.
@@ -703,12 +705,12 @@ EMAC_RHBP_H	.equ	0048h
 ;Reset                        1        1         0       0       0        0     0       0
 ;CPU Access                   R        R        R      R/W      R/W      R/W   R/W     R/W
 ;Bit Position       Value   Description
-;[7:0       ]       00h–FFh These bits represent the High byte of the 2 byte EMAC
+;[7:0       ]       00h-FFh These bits represent the High byte of the 2 byte EMAC
 ;EMAC_RHBP_H                Receive High Boundary Pointer value, {EMAC_RHBP_H,
 ;                           EMAC_RHBP_L}. Bit 7 is bit 15 (msb) of the 16 bit value. Bit
 ;                           0 is bit 8 of the 16 bit value.
 
-;                 EMAC Receive Read Pointer Register—Low and High Bytes
+;                 EMAC Receive Read Pointer Register Low and High Bytes
 ;                 The Receive Read Pointer Register must be initialized to the EMAC_BP value (start of the
 ;                 Receive buffer). This register points to where the next Receive packet is read from. The
 ;                 EMAC_BP[12:5] is loaded into this register whenever the EMAC_RST [(HRRFN) is set
@@ -720,7 +722,7 @@ EMAC_RRP_L	.equ	0049h
 ;Reset                        0        0         0       0       0        0     0       0
 ;CPU Access                  R/W      R/W       R/W     R        R        R    R        R
 ;Bit Position        Value   Description
-;[7:0]               00h–FFh These bits represent the Low byte of the 2 byte EMAC
+;[7:0]               00h-FFh These bits represent the Low byte of the 2 byte EMAC
 ;EMAC_RRP_L                  Receive Read Pointer value, {EMAC_RRP_H,
 ;                            EMAC_RRP_L}. Bit 7 is bit 7 of the 16 bit value. Bit 0 is bit 0
 ;                            (lsb) of the 16 bit value.
@@ -729,7 +731,7 @@ EMAC_RRP_H	.equ	004Ah
 ;Reset                      0        0       0       0       0        0       0       0
 ;CPU Access                 R       R        R      R/W     R/W     R/W     R/W      R/W
 ;Bit Position     Value   Description
-;[7:0]            00h–FFh These bits represent the High byte of the 2-byte EMAC
+;[7:0]            00h-FFh These bits represent the High byte of the 2-byte EMAC
 ;EMAC_RRP_H               Receive Read Pointer value, {EMAC_RRP_H,
 ;                         EMAC_RRP_L}. Bit 7 is bit 15 (msb) of the 16-bit value. Bits
 ;                         7:5 default to 000 on reset; bit 0 is bit 8 of the 16-bit value.
@@ -755,11 +757,11 @@ EMAC_BUFSZ	.equ	004Bh
 ;                10        Set EMAC Rx/Tx buffer size to 64 bytes.
 ;                11        Set EMAC Rx/Tx buffer size to 32 bytes.
 BUFSZ_MSK	.equ	11000000b
-BUFSZ256	.equ	00000000b
-BUFSZ128	.equ	01000000b
-BUFSZ64		.equ	10000000b
-BUFSZ32		.equ	11000000b
-;[5:0]           00h–3Fh Transmit Pause Control Frame level. 00h disables the
+BUFSZ256	.equ	00000000b	; 00h
+BUFSZ128	.equ	01000000b	; 40h
+BUFSZ64		.equ	10000000b	; 80h
+BUFSZ32		.equ	11000000b	; D0h
+;[5:0]           00h-3Fh Transmit Pause Control Frame level. 00h disables the
 ;                        hardware generated transmit pause control frame.
 TPCF_LEV_MSK .equ 	00111111b
 
@@ -819,7 +821,7 @@ EMAC_ISTAT	.equ	004Dh
 ;Bit Position          Value     Description
 ;7                     1         An internal error occurs in the EMAC Transmit path. The
 ;                                Transmit path must be reset to reset this error condition.
-;                      0         Normal operation—no Transmit state machine errors.
+;                      0         Normal operation no Transmit state machine errors.
 TxFSMERR_STAT	.equ	10000000b
 ;6                     1         The MII Management interrupt has completed a Read
 ;                                (RSTAT or SCAN) or a Write (LDCTLD) access to the PHY.
@@ -850,355 +852,174 @@ Tx_CF_STAT		.equ	00000010b
 Tx_DONE_STAT	.equ	00000001b
 
 
-;                EMAC PHY Read Status Data Register—Low and High Bytes
+;                EMAC PHY Read Status Data Register Low and High Bytes
 ;                The PHY MII Management Data Register is where the data Read from the PHY is stored.
 ;                See Table 217 and Table 218 on page 327.
 
-;Table 217. EMAC PHY Read Status Data Register—Low Byte(EMAC_PRSD_L = 004Eh)
+EMAC_PRSD_L 	.equ	004Eh
+EMAC_PRSD_H 	.equ	004Fh
 
 ;Bit                        7        6         5     4        3       2       1          0
 ;Reset                      0        0         0     0        0       0       0          0
-
 ;CPU Access                 R        R        R      R       R        R       R          R
-;Note: R = Read Only.
-
-;Bit
-;Position          Value        Description
-;[7:0]             00h–FFh These bits represent the Low byte of the 2 byte EMAC PHY
+;Bit Position      Value    Description
+;[7:0]             00h-FFh  These bits represent the Low byte of the 2 byte EMAC PHY
 ;EMAC_PRSD_L                Read Status Data value, {EMAC_PRSD_H,
 ;                           EMAC_PRSD_L}. Bit 7 is bit 7 of the 16 bit value. Bit 0 is bit
 ;                           0 (lsb) of the 16 bit value.
-
-
-
-
-;PS019216-0316
-;                                                                                      eZ80F91 MCU
-;                                                                               Product Specification
-
-
-;                                                                                                          327
-
-
-
-;Table 218. EMAC PHY Read Status Data Register—High Byte (EMAC_PRSD_H = 004Fh)
-
-;Bit                          7        6        5      4        3   2       1       0
-;Reset                        0        0        0      0        0   0       0       0
-;CPU Access                  R        R         R      R        R   R       R      R
-;Note: R = Read Only.
-
-;Bit
-;Position            Value        Description
-;[7:0]       00h–FFh These bits represent the High byte of the 2-byte EMAC
-;EMAC_PRSD_H         PHY Read Status Data value, {EMAC_PRSD_H,
-;                    EMAC_PRSD_L}. Bit 7 is bit 15 (msb) of the 16-bit value.
-;                    Bit 0 is bit 8 of the 16-bit value.
+;EMAC_PRSD_H         		Bit 7 is bit 15 (msb) of the 16-bit value.
+;                    		Bit 0 is bit 8 of the 16-bit value.
 
 
 ;                EMAC MII Status Register
 ;                The EMAC MII Status Register is used to determine the current state of the external PHY
 ;                device. See Table 219.
 
-;Table 219. EMAC MII Status Register (EMAC_MIISTAT = 0050h)
+EMAC_MIISTAT	.equ	0050h
 
 ;Bit                          7        6        5      4        3   2       1       0
 ;Reset                        0        0        0      0        0   0       0       0
-
 ;CPU Access                  R        R         R      R        R   R       R      R
-;Note: R = Read Only.
-
-;Bit
-;Position        Value       Description
-;7               1           MII management operation in progress—Busy. This status bit
-;BUSY                        goes busy whenever the LCTLD (PHY Write) or the RSTAT
+;Bit Position    Value       Description
+;7               1           MII management operation in progress Busy. This status bit
+;                            goes busy whenever the LCTLD (PHY Write) or the RSTAT
 ;                            (PHY Read) is set in the EMAC_MIIMGT register. It is
 ;                            negated when the Write or Read operation to the PHY has
 ;                            completed. In SCAN mode, the BUSY will be asserted until
 ;                            the SCAN is disabled. Use the EmacIStat[MGTDONE]
 ;                            interrupt status bit to determine when the data is valid.
 ;                0           Not Busy.
+BUSY  		.equ	10000000b
 ;6               1           Local copy of PHY Link fail bit.
-;MIILF
 ;                0           PHY Link OK.
-
-
-
-
-;PS019216-0316
-;                                                                                           eZ80F91 MCU
-;                                                                                    Product Specification
-
-
-;                                                                                                            328
-
-
-
-
-;5               1           MII Scan result is not valid Emac_PRSD is invalid
-;NVALID
+MIILF		.equ	01000000b
+;5              1           MII Scan result is not valid Emac_PRSD is invalid
 ;                0           Emac_PRSD is valid.
-;[4:0]           00h–1Fh Denotes PHY addressed in current scan cycle.
-;RDADR
+NVALID		.equ	00100000b
+;[4:0]           00h-1Fh 	Denotes PHY addressed in current scan cycle.
+RDADR_MSK	.equ	00011111b
 
 
-;                EMAC Receive Write Pointer Register—Low Byte
+;                EMAC Receive Write Pointer Register Low Byte
 ;                The Read Only Receive-Write-Pointer register reports the current RxDMA Receive Write
 ;                pointer. This pointer gets initialized to EmacTLBP whenever Emac_RST bits SRST or
 ;                HRRTN are set. Because the size of the packet is limited to a minimum of 32 bytes, the
 ;                last five bits are always zero. See Table 220 and Table 221 on page 329.
-
-;Table 220. EMAC Receive Write Pointer Register—Low Byte (EMAC_RWP_L = 0051h)
-
-;Bit                         7        6       5       4       3       2          1      0
-;Reset                       0        0       0       0       0       0          0      0
-
-;CPU Access                  R       R       R        R       R       R          R      R
-;Note: R = Read Only.
-
-;Bit
-;Position            Value     Description
-;[7:0]               00h–E0 These bits represent the Low byte of the 2 byte EMAC
-;EMAC_RWP_L          h      RxDMA Receive Write Pointer value, {EMAC_RWP_H,
-;                           EMAC_RWP_L}. Bit 7 is bit 7 of the 16 bit value. Bit 0 is bit 0
-;                           (lsb) of the 16 bit value.
-
-
-
-
-;PS019216-0316
-;                                                                                       eZ80F91 MCU
-;                                                                                Product Specification
-
-
-;                                                                                                         329
-
-
-
-;                EMAC Receive Write Pointer Register—High Byte
+;                EMAC Receive Write Pointer Register High Byte
 ;                Because of the size of the EMAC’s 8 KB SRAM, the upper three bits of the EMAC
 ;                Receive Write Pointer Register are always zero.
 
-;Table 221. EMAC Receive Write Pointer Register—High Byte (EMAC_RWP_H = 0052h)
 
-;Bit                        7        6        5     4        3       2       1        0
-;Reset                      0        0        0     0        0       0       0        0
-
-;CPU Access                 R        R        R     R       R        R       R       R
-;Note: R = Read Only.
-
-;Bit
-;Position           Value       Description
-;[7:0]              00h–1Fh These bits represent the High byte of the 2 byte EMAC
-;EMAC_RWP_H                 RxDMA Receive Write Pointer value, {EMAC_RWP_H,
-;                           EMAC_RWP_L}. Bit 7 is bit 15 (msb) of the 16 bit value. Bit
+EMAC_RWP_L	.equ	0051h
+EMAC_RWP_H	.equ	0052h
+;Bit                         7        6       5       4       3       2          1      0
+;Reset                       0        0       0       0       0       0          0      0
+;CPU Access                  R       R       R        R       R       R          R      R
+;Bit Position       Value   Description
+;[7:0]              00h-E0h These bits represent the Low byte of the 2 byte EMAC
+;EMAC_RWP_L                 RxDMA Receive Write Pointer value, {EMAC_RWP_H,
+;                           EMAC_RWP_L}. Bit 7 is bit 7 of the 16 bit value. Bit 0 is bit 0
+;                           (lsb) of the 16 bit value.
+;EMAC_RWP_H         00h-1Fh Bit 7 is bit 15 (msb) of the 16 bit value. Bit
 ;                           0 is bit 8 of the 16 bit value.
 
 
-;                EMAC Transmit Read Pointer Register—Low Byte
+;                EMAC Transmit Read Pointer Register Low Byte
 ;                The Low byte of the Transmit Read Pointer register reports the current TxDMA Transmit
 ;                Read pointer.This pointer is initialized to EmacTLBP whenever Emac_RST bits SRST or
 ;                HRRTN are set. Because the size of the packet is limited to a minimum of 32 bytes, the
 ;                last five bits are always zero. See Table 222.
-
-;Table 222. EMAC Transmit Read Pointer Register—Low Byte (EMAC_TRP_L = 0053h)
-
-;Bit                        7        6        5     4        3       2       1        0
-;Reset                      0        0        0     0        0       0       0        0
-
-;CPU Access                 R        R        R     R       R        R       R       R
-;Note: R = Read Only.
-
-;Bit
-;Position         Value     Description
-;[7:0]            00h–E0h These bits represent the Low byte of the 2 byte EMAC
-;EMAC_TRP_L               TxDMA Transmit Read Pointer value, {EMAC_TRP_H,
-;                         EMAC_TRP_L}. Bit 7 is bit 7 of the 16 bit value. Bit 0 is bit 0
-;                         (lsb) of the 16 bit value.
-
-
-
-
-;PS019216-0316
-;                                                                                       eZ80F91 MCU
-;                                                                                Product Specification
-
-
-;                                                                                                              330
-
-
-
-;                EMAC Transmit Read Pointer Register—High Byte
+;                EMAC Transmit Read Pointer Register High Byte
 ;                Because of the size of the EMAC’s 8 KB SRAM, the upper three bits of the EMAC Trans-
 ;                mit Read Pointer Register are always zero. See Table 223.
 
-;Table 223. EMAC Transmit Read Pointer Register—High Byte(EMAC_TRP_H = 0054h)
-
-;Bit                        7        6        5      4       3       2       1       0
-;Reset                      0        0        0      0       0       0       0       0
-
-;CPU Access                 RO      RO        RO    RO      RO      RO      RO      RO
-;Note: R/W = Read/Write.
-
-;Bit
-;Position           Value       Description
-;[7:0]              00h–1Fh These bits represent the High byte of the 2 byte EMAC
-;EMAC_TRP_H                 TxDMA Transmit Read Pointer value, {EMAC_TRP_H,
-;                           EMAC_TRP_L}. Bit 7 is bit 15 (msb) of the 16 bit value. Bit
-;                           0 is bit 8 of the 16 bit value.
+EMAC_TRP_L	.equ	0053h
+EMAC_TRP_H	.equ	0054h
+;Bit                        7        6        5     4        3       2       1        0
+;Reset                      0        0        0     0        0       0       0        0
+;CPU Access                 R        R        R     R       R        R       R       R
+;Bit Position     Value     Description
+;[7:0]            00h-E0h These bits represent the Low byte of the 2 byte EMAC
+;EMAC_TRP_L               TxDMA Transmit Read Pointer value, {EMAC_TRP_H,
+;                         EMAC_TRP_L}. Bit 7 is bit 7 of the 16 bit value. Bit 0 is bit 0
+;                         (lsb) of the 16 bit value.
+;[7:0]            00h-1Fh Bit 7 is bit 15 (msb) of the 16 bit value. Bit
+;EMAC_TRP_H               0 is bit 8 of the 16 bit value.
 
 
-;                EMAC Receive Blocks Left Register—Low and High Bytes
+;                EMAC Receive Blocks Left Register Low and High Bytes
 ;                This register reports the number of buffers left in the Receive EMAC shared memory. The
 ;                hardware uses this information along with the block-level set in the EMAC_BUFSZ regis-
-;                ter to determine when to transmit a pause control frame. Software uses this information to
+;                ter to de0termine when to transmit a pause control frame. Software uses this information to
 ;                determine when it must request that a pause control frame be transmitted (by setting bit 6
 ;                of the EMAC_CFG4 register). For the BlksLeft logic to operate properly, the Receive buf-
 ;                fer must contain at least one more packet buffer than the number of packet buffers
 ;                required for the largest packet. That is, one packet cannot fill the entire Receive buffer.
 ;                Otherwise, the BlksLeft will be in error. See Table 224 and Table 225 on page 331.
 
-
-
-
-;PS019216-0316
-;                                                                                     eZ80F91 MCU
-;                                                                              Product Specification
-
-
-;                                                                                                      331
-
-
-
-;Table 224. EMAC Receive Blocks Left Register—Low Byte (EMAC_BLKSLFT_L = 0055h)
-
+EMAC_BLKSLFT_L	.equ	0055h
+EMAC_BLKSLFT_H	.equ	0056h
 ;Bit                        7       6       5       4      3       2       1       0
 ;Reset                      0       0       0       0      0       0       0       0
 ;CPU Access                 R      R       R       R       R       R       R       R
-;Note: R = Read Only.
-
-;Bit
-;Position               Value    Description
-;[7:0]                  00h–FFh These bits represent the Low byte of the 2 byte EMAC
+;Bit Position           Value   Description
+;[7:0]                  00h-FFh These bits represent the Low byte of the 2 byte EMAC
 ;EMAC_BLKSLFT_L                 Receive Blocks Left value, {EMAC_BLKSLFT_H,
 ;                               EMAC_BLKSLFT_L}. Bit 7 is bit 7 of the 16 bit value. Bit
 ;                               0 is bit 0 (lsb) of the 16 bit value.
+;[7:0]                  00h-FFh These bits represent the High byte of the 2 byte EMAC
+;EMAC_BLKSLFT_H                 Bit 0 is bit 8 of the 16 bit value.
 
 
-
-;Table 225. EMAC Receive Blocks Left Register—High Byte (EMAC_BLKSLFT_H = 0056h)
-
-;Bit                        7       6       5       4      3       2       1       0
-;Reset                      0       0       0       0      0       0       0       0
-
-;CPU Access                 R      R       R       R       R       R       R       R
-;Note: R = Read Only.
-
-;Bit
-;Position               Value    Description
-;[7:0]                  00h–FFh These bits represent the High byte of the 2 byte EMAC
-;EMAC_BLKSLFT_H                 Receive Blocks Left value, {EMAC_BLKSLFT_H,
-;                               EMAC_BLKSLFT_L}. Bit 7 is bit 15 (msb) of the 16 bit
-;                               value. Bit 0 is bit 8 of the 16 bit value.
-
-
-
-
-;PS019216-0316
-;                                                                                         eZ80F91 MCU
-;                                                                                  Product Specification
-
-
-;                                                                                                          332
-
-
-
-;                EMAC FIFO Data Register—Low and High Bytes
+;                EMAC FIFO Data Register Low and High Bytes
 ;                The FIFO Read/Write Test Access Data Register allows writing and reading the FIFO
 ;                selected by the EMAC_TEST TxRx_SEL bit when the EMAC_TEST register
 ;                TEST_FIFO bit is set. See Table 226 and Table 227.
 
-;Table 226. EMAC FIFO Data Register—Low Byte (EMAC_FDATA_L = 0057h)
-
+EMAC_FDATA_L	.equ	0057h
+EMAC_FDATA_H	.equ	0058h
 ;Bit                         7        6        5      4        3       2       1       0
 ;Reset                       X        X        X      X       X       X        X       X
-
 ;CPU Access                R/W       R/W     R/W     R/W     R/W     R/W     R/W     R/W
-;Note: R/W = Read/Write.
-
-;Bit
-;Position            Value       Description
-;[7:0]               00h–FFh These bits represent the Low byte of the 10 bit EMAC
+;Bit Position        Value    Description
+;[7:0]               00h-FFh  These bits represent the Low byte of the 10 bit EMAC
 ;EMAC_FDATA_L                 FIFO data value, {EMAC_FDATA_H[1:0],
 ;                             EMAC_FDATA_L}. Bit 7 is bit 7 of the 16 bit value. Bit 0 is
 ;                             bit 0 (lsb) of the 10 bit value.
-
-
-
-;Table 227. EMAC FIFO Data Register—High Byte (EMAC_FDATA_H = 0058h)
-
-;Bit                         7        6        5      4        3       2       1       0
-;Reset                       0        0        0      0        0       0       X       X
-
 ;CPU Access                  R        R        R      R       R       R      R/W     R/W
-;Note: R = Read Only; R/W = Read/Write.
-
-;Bit
-;Position            Value       Description
-;[7:2]               00h         Reserved.
-;[1:0]               0h–3h       These bits represent the upper two bits of the 10 bit EMAC
-;EMAC_FDATA_H                    FIFO data value, {EMAC_FDATA_H[1:0],
-;                                EMAC_FDATA_L}. Bit 1 is bit 9 (msb) of the 16 bit value.
-;                                Bit 0 is bit 8 of the 10 bit value.
-
-
-
-
-;PS019216-0316
-;                                                                                      eZ80F91 MCU
-;                                                                               Product Specification
-
-
-;                                                                                                             333
-
-
+;[7:2]               00h      Reserved.
+;[1:0]               0h-3h    These bits represent the upper two bits of the 10 bit EMAC
+;EMAC_FDATA_H                 Bit 1 is bit 9 (msb) of the 16 bit value.
+;                             Bit 0 is bit 8 of the 10 bit value.
 
 ;                EMAC FIFO Flags Register
 ;                The FIFO Flags value is set in the EMAC hardware to half full, or 16 bytes. See Table 228.
 
-;Table 228. EMAC FIFO Flags Register (EMAC_FFLAGS = 0059h)
-
+EMAC_FFLAGS	.equ	0059h
 ;Bit                        7        6        5      4      3       2       1       0
 ;Reset                      0        0        1      1      0       0       1       1
-
 ;CPU Access                 R       R         R      R      R       R       R       R
-;Note: R = Read Only.
-
-;Bit
-;Position        Value    Description
+;Bit Position    Value    Description
 ;7               1        Transmit FIFO full
-;TFF
 ;                0        Transmit FIFO not full
+TFF		.equ	10000000b
 ;6               0        Reserved
 ;5               1        Transmit FIFO almost empty
-;TFAE
 ;                0        Transmit FIFO not almost empty
+TFAE	.equ	00100000b
 ;4               1        Transmit FIFO empty
-;TFE
 ;                0        Transmit FIFO not empty
+TFE		.equ	00010000b
 ;3               1        Receive FIFO full
-;RFF
 ;                0        Receive FIFO not full
+RFF		.equ	00001000b
 ;2               1        Receive FIFO almost full
-;RFAF
 ;                0        Receive FIFO not almost full
+RFAF	.equ	00000100b
 ;1               1        Receive FIFO almost empty
-;RFAE
 ;                0        Receive FIFO not almost empty
-;0               133        Receive FIFO empty
-;RFE
+RFAE	.equ	00000010b
+;0               1        Receive FIFO empty
 ;                0        Receive FIFO not empty
-
-
-endif	; EMACREGISTER
+RFE		.equ	00000001b
 

@@ -1,6 +1,6 @@
 
-  .list off
-  .INCLUDE "eZ80F91.INC"    ; CPU Equates
+	.list off
+	.INCLUDE "eZ80F91.INC"    ; CPU Equates
 	.INCLUDE "intvect.inc"
 	.INCLUDE "bsp.inc"
 	.list on
@@ -10,9 +10,9 @@
 syscfg		.tag	SYSCFG
 syscfg:
 			;emac		.TAG	EMACCFG 
-			db 	00h,90h,23h,00h,01h,01h	; macaddr
-$$:	
-	DS		SYSCFGSZ
+			db 	00h,90h,23h,00h,01h,01h	; macaddr			DS		6
+			db	BUFSZ32					; bufsz 			DS		1 
+
 
 $critical:	DB		0
 	
