@@ -215,12 +215,12 @@ $init_phy:		ld		a,PHY_ADDRESS
 				ld		a,PADEN|CRCEN
 				out0	(EMAC_CFG1),a
 				jr		$j0
-$$:				inc		(ix+autoneg)
+$$:			inc		(ix+autoneg)
 				ld		bc,PHY_ANEG_100_FD|PHY_ANEG_100_HD|PHY_ANEG_10_FD|PHY_ANEG_10_HD|PHY_ANEG_802_3
 				ld		a,PHY_ANEG_ADV_REG
 				call	$WtPhyReg
 				ld		bc,PHY_AUTO_NEG_ENABLE|PHY_RESTART_AUTO_NEG
-$j0:			ld		a,PHY_CREG
+$j0:		ld		a,PHY_CREG
 				call	$WtPhyReg
 				ld		bc,0
 $waitlink:		nop
@@ -234,7 +234,7 @@ $waitlink:		nop
 				jr		nz,$cklink
 				dec		c
 				jr		nz,$waitlink
-$$				or		a,ffh
+$$:			or		a,ffh
 				ret
 $cklink:		tst		a,PHY_LINK_ESTABLISHED 
 				jr		z,$B
@@ -274,7 +274,7 @@ init_emac:		xor		a,a
 				jr		z,$F
 				ld		a,EMACERR_SETMAC
 				ret
-$$:				ld		a,ffh
+$$:			ld		a,ffh
 				out0	(EMAC_ISTAT),a
 				ld		a,BUFSZ32
 				out0	(EMAC_BUFSZ),a
