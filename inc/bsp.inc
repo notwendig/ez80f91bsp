@@ -3,6 +3,7 @@
 	.include "ez80f91.inc"
 	.include "intvect.inc"
 	.include "uart.inc"
+	.include "emac.inc"
 	list
 	
 ; System hardware config
@@ -54,3 +55,8 @@
 	xref critical_bgn
 	xref critical_end
 	xref fatal
+	xref syscfg
+	xref init_emac
+SYSCFG		struct 
+emac		.TAG	EMACCFG
+SYSCFGSZ	endstruct SYSCFG	

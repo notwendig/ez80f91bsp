@@ -1,11 +1,19 @@
-	.list off
-    .INCLUDE "eZ80F91.INC"    ; CPU Equates
+
+  .list off
+  .INCLUDE "eZ80F91.INC"    ; CPU Equates
 	.INCLUDE "intvect.inc"
 	.INCLUDE "bsp.inc"
 	.list on
 
 	segment DATA
-	
+
+syscfg		.tag	SYSCFG
+syscfg:
+			;emac		.TAG	EMACCFG 
+			db 	00h,90h,23h,00h,01h,01h	; macaddr
+$$:	
+	DS		SYSCFGSZ
+
 $critical:	DB		0
 	
 	segment CODE
@@ -24,6 +32,7 @@ init_bsp:
 			or		a,ffh
 			out0	(PD_DDR),a
 			call	init_uart0
+			call	init_emac
 			ei
 			ret
 

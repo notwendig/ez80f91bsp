@@ -2,3 +2,7 @@
 **/Release/*
 *.lib
 *.wsp
+/.project
+/testbsp.lod
+/testbsp.hex
+/testbsp.map
