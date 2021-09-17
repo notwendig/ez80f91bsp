@@ -1,4 +1,6 @@
 
+	xref	init_emac	; iy = EMACCFG
+
 EMAC_Rx_IVECT	.equ	40h
 EMAC_Tx_IVECT	.equ	44h
 EMAC_Sys_IVECT	.equ	48h
@@ -67,11 +69,15 @@ STATUS:			DS		2
 MACDESCRIPTORSZ endstruct MACDESCRIPTOR
 
 EMACCFG			struct
+tlbp:			DS		3			; Transmit Lower Boundary Pointer
+bp:				DS		3			; Boundary Pointer
+rhbp:			DS		3			; Receive High Boundary Pointer
+
 macaddr:		DS		6
 bufsz: 			DS		1			; reg const
 bufalign:		DS		1			; buffer size -1
-bp:				DS		3			; end of tx buffer, start of rx buffer
 EMACCFGSZ		endstruct EMACCFG
+
 
 ETHHDR			struct
 destmac:		DS		6
@@ -80,6 +86,7 @@ lentype:		DS		3
 ETHHDRSZ		endstruct ETHHDR
 
 EMACSTAT		struct
+cfg				.tag	EMACCFG
 txfsmerr:		DS		3
 mgtdone:		DS		3
 rxovr:			DS		3
@@ -88,8 +95,6 @@ pctlfrm:		DS		3
 rxdone:			DS		3
 physem:			DS		1
 autoneg:		DS		1	
-srcmac:			DS		6
-rxhigh:			DS		3
 txwp:			DS		3
 txrp:			DS		3
 rxwp:			DS		3

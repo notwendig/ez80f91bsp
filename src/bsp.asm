@@ -7,13 +7,6 @@
 
 	segment DATA
 
-syscfg		.tag	SYSCFG
-syscfg:
-			;emac		.TAG	EMACCFG 
-			db 	00h,90h,23h,00h,01h,01h	; macaddr			DS		6
-			db	BUFSZ32					; bufsz 			DS		1 
-
-
 $critical:	DB		0
 	
 	segment CODE
@@ -31,8 +24,6 @@ init_bsp:
 			in0		a,(PD_DDR)
 			or		a,ffh
 			out0	(PD_DDR),a
-			call	init_uart0
-			call	init_emac
 			ei
 			ret
 

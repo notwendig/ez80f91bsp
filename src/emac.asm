@@ -141,12 +141,11 @@ send_emac:		push	ix
 				push	iy
 				push	de
 				ld		ix,emacstat
-				ld		iy,syscfg.emac
 				xor		a,a
 				sbc		hl,hl
 				ex		de,hl
 				ld		hl,(ix+txwp)
-				add		hl,bc
+				add		hl,bc				; hl = txbuf + msglen
 				ld		e,(iy+EMACCFG.bufalign)
 				adc		hl,de
 				ld		a,e
@@ -154,13 +153,13 @@ send_emac:		push	ix
 				adc		hl,de
 				cpl	
 				and		a,l
-				ld		l,a							
-				push	hl				;hl => next
-				ld		de,(iy+EMACCFG.bp)
-				sbc		hl,de
-				jr		c,$F
-				ld		de,#(__RAM_ADDR_U_INIT_PARAM << 16) + C000h
-				add		hl,de
+				ld		l,a					; hl = align(txtbuf + msglen + disciptor)						
+				push	hl					; hl => next
+				ld		de,(ix+cfg.bp)
+				sbc		hl,de				; hl = next - end of txram
+				jr		c,$F				
+				ld		de,(ix+cfg.tlbp)
+				add		hl,de				
 				ex		(sp),hl
 $$:				ex		(sp),iy			; next
 				xor		a,a
@@ -184,7 +183,14 @@ $$:				ex		(sp),iy			; next
 				pop		hl				; srcs
 				ldir
 				jr		$toemac
-$wrap:				
+$wrap:			push	bc
+				ex		de,hl
+				xor		a,a
+				sbc		hl,de			; size - wrap
+				
+				ld		de,bc		
+				ex		de,hl
+				sbc		hl,de
 $toemac:		pop		iy
 				ld		hl,(iy+MACDESCRIPTOR.NP)
 				ld		(ix+txwp),hl
@@ -196,55 +202,63 @@ $toemac:		pop		iy
 				
 				
 				
-	XDEF	init_emac
+	XDEF	init_emac	; iy = EMACCFG
+	
 init_emac:		xor		a,a
 				out0	(EMAC_IEN),a
 				ld		a,SRST|HRTFN|HRRFN|HRTMC|HRRMC|HRMGT
 				out0	(EMAC_RST),a
 				ld		ix,emacstat
-				ld		iy,syscfg.emac
-				lea		hl,ix+0
-				lea		de,ix+1
-				ld		bc,EMACSTATSZ-1
+				lea		de,ix+cfg
+				lea		hl,iy+0
+				ld		bc,EMACCFGSZ
+				ldir							; copy globale emac config to local
+				; reset emac
 				xor		a,a
-				ld		(hl),a
-				ldir
 				out0	(EMAC_RST),a
 				out0	(EMAC_TEST),a
-				lea		hl,iy+EMACCFG.macaddr
+				; config mac addr
+				lea		hl,ix+cfg.macaddr
 				ld		c,EMAC_STAD_0
 				ld		b,6
 				otimr
-				lea		hl,ix+srcmac
+				xor		a,a
+				sbc		hl,hl
+				ld		iy,hl
+				add		iy,sp
+				ld		hl,-6
+				add		hl,sp
+				ld		sp,hl
 				ld		c,EMAC_STAD_0
 				ld		b,6
 				inimr
-				lea		hl,iy+EMACCFG.macaddr
-				lea		de,ix+srcmac
+				dec		hl
+				lea		de,ix+cfg.macaddr+6
 				ld		bc,6
-				cpir
-				jr		z,$F
-				ld		a,EMACERR_SETMAC
+				cpdr
+				ld		sp,iy
+				jr		z,$F					; mac Ok
+				ld		a,EMACERR_SETMAC		; couldn't set mac-addr
 				ret
+				
 $$:				ld		a,ffh
 				out0	(EMAC_ISTAT),a
-				ld		a,(iy+EMACCFG.bufsz)
+				ld		a,(ix+cfg.bufsz)
 				out0	(EMAC_BUFSZ),a
-				ld		hl,14h
-				out0	(EMAC_TPTV_L),l
-				out0	(EMAC_TPTV_H),h
-				push	iy
-				ld		iy,#(__RAM_ADDR_U_INIT_PARAM << 16) + C000h
+				ld		a,14h
+				out0	(EMAC_TPTV_L),a
 				xor		a,a
-				ld		(iy+MACDESCRIPTOR.STATUS+1),a
-				ld		hl,iy
-				pop		iy
-				out0	(EMAC_TLBP_H),h
-				out0	(EMAC_TLBP_L),l
-				ld		(ix+txwp),hl
-				ld		(ix+txrp),hl
-				ld		hl,(ix+EMACCFG.bp)
-				ld		a,__RAM_ADDR_U_INIT_PARAM
+				out0	(EMAC_TPTV_H),a
+				ld		iy,(ix+cfg.tlbp)
+				ld		(iy+MACDESCRIPTOR.STATUS+1),a	; host owns current tx-buffer
+				ld		a,iyh
+				out0	(EMAC_TLBP_H),a
+				ld		a,iyl
+				out0	(EMAC_TLBP_L),a
+				ld		(ix+txwp),iy
+				ld		(ix+txrp),iy
+				ld		hl,(ix+cfg.bp)
+				ld		a,(ix+cfg.bp+2)
 				out0	(EMAC_BP_U),a
 				out0	(EMAC_BP_H),h
 				out0	(EMAC_BP_L),l
@@ -252,12 +266,9 @@ $$:				ld		a,ffh
 				out0	(EMAC_RRP_L),l
 				ld		(ix+rxwp),hl
 				ld		(ix+rxrp),hl
-				ld		a,10h
-				add		a,h
-				ld		h,a
+				ld		hl,(ix+cfg.rhbp)
 				out0	(EMAC_RHBP_H),h
 				out0	(EMAC_RHBP_L),l
-				ld		(ix+rxhigh),hl
 				ld		a,1
 				out0	(EMAC_PTMR),a
 				ld		a,PADEN | CRCEN | FULLD
@@ -268,10 +279,7 @@ $$:				ld		a,ffh
 				out0	(EMAC_CFG3),a
 				ld		a,RxEN
 				out0	(EMAC_CFG4),a
-	
-;ifdef MULTICAST
-					     
-;endif
+				ld		a,BCM|PROM;|QCM
 				out0	(EMAC_AFR),a
 				xor		a,a
 				out0	(EMAC_MAXF_L),a
@@ -309,7 +317,8 @@ $$:				ld		a,ffh
 				pop		hl
 				pop		hl
 				ld		a,TxFSMERR|MGTDONE|Rx_CF|Rx_PCF|Rx_DONE|Rx_OVR|Tx_CF|Tx_DONE
-				out		(EMAC_IEN),a
+				out0	(EMAC_IEN),a
 				or		a,a
 				ret
+
 

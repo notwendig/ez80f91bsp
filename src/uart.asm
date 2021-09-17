@@ -1,9 +1,9 @@
 	nolist
 	.include "uart.inc"
+	.include "console.inc"
 	list
 	
 	xref	_set_vector
-	xref	DIVISOR0
 	xref	critical_bgn
 	xref	critical_end
 	
@@ -107,28 +107,22 @@ i_tc:		ret
 			
 			scope
 			; 001 1 Fifth	Transmit Buffer Empty
-i_tbe:		ld		b,01h				
+i_tbe:		ld		bc,0101h				
 			jr		nc,$F				; FIFO not uset
-			ld		b,0Fh				; FIFO takes 16 bytes
-$$:			ld		hl,(ix+rtx)
+			ld		bc,0F0Fh			; FIFO takes 16 bytes
+			ld		hl,(ix+rtx)
 			ld		a,(ix+wtx)
-			sub		a,l					;w-r			
-			jr		nc,$F			;w<r; a=used
-			add		a,FFh				;free
-$$:			jr		z,$emptytbe
-			cp		a,b
-			jr		nc,$F
-			ld		b,a
-$$:			in0		a,(UART0_MSR)
-			tst		a,UART_MSR_CTS
-			ret		z
-$$:			ld		a,(hl)
+$$:			cp		a,l					;w-r			
+			jr		z,$F				;w<r; a=used
+			ld		e,(hl)
+			out0	(UART0_THR),e
 			inc		l
-			out0	(UART0_THR),a
 			djnz	$B
-			ld		(ix+rtx),l
-			ret		
-$emptytbe:	in0		a,(UART0_IER)
+$$:			ld		(ix+rtx),l
+			ld		a,c
+			cp		a,b
+			ret		nz
+			in0		a,(UART0_IER)
 			and		a,~UART_IER_TIE
 			out0	(UART0_IER),a
 			ret
@@ -139,7 +133,7 @@ i_ms:		in0		a,(UART0_MSR)
 			tst		a,UART_MSR_DCTS
 			ret		z
 			tst		a,UART_MSR_CTS
-			jr		nz,$F			
+			jr		nz,$F
 			in0		a,(UART0_IER)
 			tst		a,UART_IER_TIE
 			ret		z
@@ -188,33 +182,34 @@ $$:			pop		ix
 			reti
 
 			scope
-	xdef init_uart0
+	
+	xdef init_uart0			; iy = UARTCFG
 init_uart0:	
 	; Configure UART0 for 115200,8,1,n. Tx flow DSR, Rx flow DTR, RTS
+			SAVEIMASK
 			xor		a,a
 			out0	(UART0_IER), a		; disable uart0 interrupts
-			out0	(UART0_FCTL), a		; Enable FIFO and clear, int after 14 bytes.
-
+			out0	(UART0_FCTL), a		; FIFO reset
+			ld		ix,uart0
+			lea		hl,ix+0
+			lea		de,ix+1
+			ld		bc,UARTSTATSZ-1 
+			ld		(hl),a
+			ldir
+			lea		hl,iy+0
+			lea		de,ix+cfg
+			ld		bc,UARTCFGSZ
+			ldir
+			
 			ld		a, UART_LCTL_DLAB	; 80h
 			out0	(UART0_LCTL), a		; Enable access to BRG.
-			ld		a, LOW(DIVISOR0)
+			ld		a, (ix+cfg.divisor)
 			out0	(UART0_BRG_L), a	; Load low byte of BRG.
-			ld		a, HIGH(DIVISOR0)
+			ld		a, (ix+cfg.divisor+1)
 			out0	(UART0_BRG_H), a	; Load high byte of BRG.
-			ld		a,LCTL_CHAR_8_1		; 03h
-			out0	(UART0_LCTL), a		; Select 8 bits, no parity, 1 stop.
-			ld		a, UART_MCTL_RTS|UART_MCTL_DTR	; 03h
-			out0	(UART0_MCTL), a		; Select activate RTS, DTR
-			ld		a,FCTL_TRIG_FFTL14|UART_FCTL_FIFOEN|UART_FCTL_CLRTXF|UART_FCTL_CLRRXF
-			out0	(UART0_FCTL), a		; Enable receiver and transmitter
+			ld		a,(ix+cfg.lctl)		; Load line settings
+			out0	(UART0_LCTL), a
 			
-			ld		a,11010011b			; D3h. b6 = rx flow, 
-										; set RTS=0 and DTR=0 for no rx (b3, b2)
-										; set RTS=1 and DTR=1 for rx (b1, b0)
-										; b7 = tx flow,
-										; DSR = 0, CTS = 1 for tx allowed (b5, b4)
-			out0	(UART0_SPR), a		; save the settings in the scratch register		
-										; setup for a receive IRQ
 			ld		hl,Uart0IRQ
 			push	hl
 			ld		hl,UART0_IVECT
@@ -223,30 +218,30 @@ init_uart0:
 			pop		hl
 			pop		hl
 			
-			ld		ix,uart0
-			lea		hl,ix+0
-			lea		de,ix+1
-			ld		bc,UARTSTATSZ-1 
-			xor		a,a
-			ld		(hl),a
-			ldir
 			ld		hl,uart0rx
 			ld		(ix+rrx),hl
 			ld		(ix+wrx),hl
 			ld		hl,uart0tx
 			ld		(ix+rtx),hl
 			ld		(ix+wtx),hl
+			
+			ld		a,FCTL_TRIG_FFTL14|UART_FCTL_FIFOEN|UART_FCTL_CLRTXF|UART_FCTL_CLRRXF
+			out0	(UART0_FCTL), a		; Enable receiver and transmitter
 			ld		a, UART_IER_RIE|UART_IER_LSIE|UART_IER_MIIE;|UART_IER_TCIE;|UART_IER_TIE
 			out0	(UART0_IER), a		; enable all interrupts
+			ld		a, UART_MCTL_RTS|UART_MCTL_DTR
+			out0	(UART0_MCTL), a		; Select activate RTS, DTR
+			RESTOREIMASK
 			xor		a,a
 			ret
-
+		
 			scope
 	xdef uart0_putc
 uart0_putc:	push	ix
 			push	hl
 			push	bc
 			ld		c,a
+			SAVEIMASK
 			ld		ix,uart0
 			ld		hl,(ix+wtx)
 			ld		a,(ix+rtx)
@@ -256,16 +251,18 @@ uart0_putc:	push	ix
 			ld		(hl),c
 			inc		(ix+wtx)
 			ld		a,1
-$$:			or		a,a
-			push	af
-			SAVEIMASK
+$$:			ld		c,a
+			in0		a,(UART0_MSR)
+			tst		a,UART_MSR_CTS
+			jr		z,$F
 			in0		a,(UART0_IER)
 			tst		a,UART_IER_TIE
 			jr		nz,$F
 			or		a,UART_IER_TIE
 			out0	(UART0_IER),a
 $$:			RESTOREIMASK
-			pop		af
+			ld		a,c
+			or		a,a
 			pop		bc
 			pop		hl
 			pop		ix
@@ -299,20 +296,27 @@ $$:			ld		hl,(ix+rrx)
 			ret
 			
 			scope
-	xdef uart0_puts						; de => c-str
-uart0_puts:	push	bc
-			ld		bc,0
-$$:			ld		a,(de)
+	xdef uart0_puts						; hl => c-str; ret hl = chars printed
+uart0_puts:	push	de
+			push	hl
+$$:			ld		a,(hl)
 			or		a,a
-			jr		z,$endstr
-			inc		bc
+			jr		z,$F
 			call	uart0_putc
-			jr		nz,$B
-			dec		bc
-$endstr:	ld		hl,bc
-			pop		bc
+			jr		z,$ex
+			inc		hl
+			jr		$B
+$$:			ld		a,0ah
+			call	uart0_putc
+			jr		z,$B
+$ex:		pop		de
+			sbc		hl,de
+			pop		de
 			ret
-
+			
+			
+			
+			
 	xref uart0_gets						; de => c-str, bc = max
 uart0_gets:
 	; todo

@@ -2,6 +2,7 @@
 	nolist
 	.include "ez80f91.inc"
 	.include "intvect.inc"
+	.include "console.inc"
 	.include "uart.inc"
 	.include "emac.inc"
 	list
@@ -56,11 +57,3 @@
 	xref critical_end
 	xref fatal
 
-	xref syscfg
-	xref init_emac
-	
-SYSCFG		struct 
-emac		.TAG	EMACCFG
-SYSCFGSZ	endstruct SYSCFG	
-
-syscfg .tag SYSCFG

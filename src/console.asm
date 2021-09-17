@@ -16,4 +16,18 @@ puts:	jp	uart0_puts
 getc:	jp	uart0_getc
 gets:	jp	uart0_gets
 	
+
+	xdef strlen		;hl=>c-str, ret len in bc; zf=1 strlen 0
+strlen:		push	hl
+			ld		bc,0
+			xor		a,a
+$$:			cpi
+			jr		nz,$B
+			ld		hl,-1
+			or		a,a
+			sbc		hl,bc
+			ex		(sp),hl
+			pop		bc
+			ret	
+	
 .end	

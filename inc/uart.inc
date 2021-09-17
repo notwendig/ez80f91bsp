@@ -2,14 +2,20 @@
 .include "macros.inc"
 
 	xref _SYS_CLK_FREQ
-	xref init_uart0
+	xref init_uart0						; iy = SYSCFG
 	xref uart0_putc						; a = char
 	xref uart0_kbhit					; a!=0 => key pressed 
 	xref uart0_getc						; char => a
-	xref uart0_puts						; de => c-str
+	xref uart0_puts						; hl => c-str; ret hl = chars printed
 	xref uart0_gets						; de => c-str, bc = max
 	
+UARTCFG			struct
+divisor			DS		2
+lctl			DB		1
+UARTCFGSZ		endstruct UARTCFG
+
 UARTSTAT		struct	
+cfg				.tag	UARTCFG
 rrx:			DS		3
 wrx:			DS		3	
 rtx:			DS		3
@@ -231,32 +237,3 @@ UART_MSR_DCTS	.equ	00000001b		; 0-1 Delta Status Change of CTS. This bit is set 
 
 UART0_SPR		.equ	C7h				; UART Scratch Pad Register
 UART1_SPR		.equ	D7h				;	The UARTx_SPR register is used by the system as a general-purpose Read/Write register.
-; ********************************************************
-; *** SET UP SERIAL COMMUNICATIONS WITH HOST.
-; *** UART0
-;
-BAUDRATE0 	EQU 115200 ;57600 ;38400
-DIVISOR0 	EQU ((_SYS_CLK_FREQ / BAUDRATE0) / 16)
-
-	xref init_uart0
-	xref RCXRDY0		; check if character ready to receive.
-						; args: none
-						; returns: on character is ready a=ffh z-flg=0 otherwise a=0, z-flg=1
-						; uses: a,flg
-
-	xref TMXRDY0		; checks for ready to transmit one character.
-						; args: none
-						; returns: on ready a=ffh z-flg=0 otherwise a=0, z-flg=1
-						; uses: a,flg
-
-	xref TXMCHR0		; wait infinite for TMXRDY and transmit byte in reg a
-						; args: a=byte to transit
-						; returns:
-						; uses: a,flg
-
-	xref RCXCHR0		; wait infinite for RCXRDY and read byte into reg a
-						; args:
-						; returns: a=byte read
-						; uses: a,flg
-
-
