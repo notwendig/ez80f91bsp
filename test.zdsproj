@@ -10,6 +10,7 @@
 <file filter-key="">test\init_params_f91.asm</file>
 <file filter-key="">test\main.asm</file>
 <file filter-key="">src\phy.asm</file>
+<file filter-key="">src\printf.asm</file>
 <file filter-key="">src\uart.asm</file>
 <file filter-key="">test\vectors24.asm</file>
 <file filter-key="">test\zsldevinitdummy.asm</file>

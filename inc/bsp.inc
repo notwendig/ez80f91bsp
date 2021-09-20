@@ -5,6 +5,7 @@
 	.include "console.inc"
 	.include "uart.inc"
 	.include "emac.inc"
+	.include "phy.inc"
 	list
 	
 ; System hardware config

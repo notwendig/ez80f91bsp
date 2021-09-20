@@ -1,21 +1,30 @@
 	nolist
 	.include "emac.inc"
 	.include "phy.inc"
+	.include "console.inc"
 	list
 	
 	xdef WtPhyReg
 	xdef RdPhyReg
 	xdef init_phy
-		
+	xdef IsPhyConnected
+	xdef PhyStatus
+
+	segment	DATA
+	xdef mgdonesem
+mgdonesem:		DB		0
+	
+	
 	segment CODE
 	.assume adl=1
 					
-$waitphy:		nop
-				in0		a, (EMAC_MIISTAT)	;read status
-				and		a, MGTBUSY			;see if data transfered
-				jr		nz, $waitphy
+$waitphy:		ld		a,(mgdonesem)
+				or		a,a
+				jr		z,$waitphy
+				xor		a,a
+				ld		(mgdonesem),a
 				ret
-
+			
 ;
 ; write phy register in A with the value in HL
 ;
@@ -42,14 +51,37 @@ RdPhyReg:		out0	(EMAC_RGAD), a		;set the register to read
 				in0		l, (EMAC_PRSD_L)	;read low byte of data
 				ret
 				
-phyconnected:	push	hl
+IsPhyConnected:	push	hl
 				ld		a,PHY_SREG
 				call	RdPhyReg
-				ld		a,PHY_LINK_ESTABLISHED
+				ld		a,LOW(PHY_LINK_ESTABLISHED)
 				and		a,l
 				pop		hl
 				ret
-	
+
+PhyStatus:		push	hl
+				ld		hl,msg_nolink
+				call	IsPhyConnected
+				jr		z,$last
+				ld		hl,msg_link
+				call	puts
+				ld		a,PHY_DIAG_REG
+				call	RdPhyReg
+				ld		a,HIGH(PHY_100_MBPS)
+				and		a,h
+				push	hl
+				ld		hl,msg_100
+				jr		nz,$F
+				ld		hl,msg_10
+$$:				call	puts
+				pop		hl
+				ld		a,HIGH(PHY_FULL_DUPLEX)
+				ld		hl,msg_full
+				jr		nz,$last
+				ld		hl,msg_half
+$last:			call	puts
+				pop		hl
+				ret
 
 init_phy:		push	de
 				push	hl
@@ -103,9 +135,9 @@ $waitlink:		nop
 $exit:			or		a,a
 				pop		hl
 				pop		de
-         				ret
+   				ret
 					
-$$:				call	phyconnected
+$$:				call	IsPhyConnected
 				jr		nz,$exit
 				dec		e
 				jr		nz,$B
@@ -113,3 +145,11 @@ $$:				call	phyconnected
 				jr		nz,$B
 				jr		$exit
 				
+		segment TEXT
+
+msg_nolink:	ascii		"Phy: No link.",0
+msg_link:	ascii		"Phy: Link established.",0
+msg_100:	ascii		"Phy: Link speed 100MB/s",0
+msg_10:		ascii		"Phy: Link speed 10MB/s",0
+msg_full:	ascii		"Phy: Full duplex",0
+msg_half:	ascii		"Phy: Half duplex",0	

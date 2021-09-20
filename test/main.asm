@@ -1,4 +1,4 @@
-	.include "bsp.inc"
+ 	.include "bsp.inc"
 	
 		segment TEXT
 
@@ -29,11 +29,9 @@ uart0cfg	.tag	UARTCFG
 uart0cfg:
 			dw		((_SYS_CLK_FREQ / BAUDRATE0) / 16)	; divisor baudrate 115200
 			db  	LCTL_CHAR_8_1						; lctl line control 8,1,n
-ifdef	DEBUG
-	xdef	init_uart0_ok
-cloop:			db 0dh,0ah	
-init_uart0_ok:ascii "init UART0 115200 ,8,1,n RTS/CTS.xx",0
-endif	
+
+init_uart0_ok:ascii "init UART0 115200 ,8,1,n RTS/CTS.",0
+	
 
 	segment CODE
 	.assume adl=1
@@ -44,32 +42,12 @@ _main:
 			
 			ld		iy,uart0cfg
 			call	init_uart0
-ifdef DEBUG
-if 0	
-			scope
-$cloop:		ld		hl,cloop
-$$:			ld		a,(hl)
-			or		a,a
-			jr		z,$cloop
-			call	putc
-			jr		z,$B
-			inc		hl
-			jr		$B
-endif			
-
-			scope			
-	xref	init_uart0_ok
-$$:			ld		hl,init_uart0_ok
-$next:		call	strlen
-			jr		z,$B
-			push	hl
+			ld		hl,init_uart0_ok
 			call	puts
-			pop		bc
-			add		hl,bc
-			jr		$next
-endif			
+			
 			ld		iy,emaccfg
-;			call	init_emac
+			call	init_emac
+			call	PhyStatus
 			ret 
 	
-	END
+	END 

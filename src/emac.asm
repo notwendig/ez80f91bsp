@@ -12,27 +12,115 @@
 
 emacstat	.tag EMACSTAT
 emacstat:		DS		EMACSTATSZ
-	
+
 	segment CODE
 	.assume  ADL=1
 	
+	; iy => MACDESCRIPTOR
+	with MACDESCRIPTOR
+$prnt_descr:	push	hl
+				push	iy
+				call	prnt_u24_hex
+				ld		a,'>'
+				call	putc
+				ld		hl,(iy+NP)		; next
+				call	prnt_u24_hex
+				ld		a,','
+				call	putc
+				ld		hl,(iy+PKTSIZE)
+				call	prnt_u16_hex
+				ld		a,','
+				call	putc
+				ld		hl,(iy+STATUS)
+				call	prnt_u16_hex
+				ld		a,' '
+				call	putc
+				lea		iy,iy+MACDESCRIPTORSZ
+	with ETHHDR			
+				lea		hl,iy+destmac
+				call	prnt_mac
+				ld		a,','
+				call	putc
+				lea		hl,iy+srcmac
+				call	prnt_mac
+				ld		a,','
+				call	putc
+				ld		h,(iy+lentype)
+				ld		l,(iy+lentype+1)
+				call	prnt_u16_hex
+				ld		a,0ah
+				call	putc
+				pop		iy
+				pop		hl
+				ret
+	endwith
+				
 	with  EMACSTAT
 
-$rxcontrolframe:
-$rxpcontrolframe:
-$rxdoneframe:
+$rxcontrolframe:ld		hl,(ix+ctlfrm)
+				inc		hl
+				ld		(ix+ctlfrm),hl
+				ld		l, Rx_CF_STAT
+				out0	(EMAC_ISTAT),l
+				ret
+				
+$rxpcontrolframe:ld		hl,(ix+pctlfrm)
+				inc		hl
+				ld		(ix+pctlfrm),hl
+				ld		l, Rx_PCF_STAT
+				out0	(EMAC_ISTAT),l
+				ret
+
+$rxdoneframe:	push	iy
+				ld		iy,(ix+rxrp)
+				ld		hl,(ix+rxrp)
+				call	$prnt_descr
+				ld		hl,(ix+rxdone)
+				inc		hl
+				ld		(ix+rxdone),hl
+				or		a,a
+				sbc		hl,hl
+				in0		l,(EMAC_RWP_L)
+				in0		h,(EMAC_RWP_H)
+				ld		de,(ix+cfg.tlbp)
+				add		hl,de
+				ld		de,(iy+MACDESCRIPTOR.NP)
+				or		a,a
+				sbc		hl,de
+				jr		nz,$F
+				ld		a, Rx_DONE_STAT
+				out0	(EMAC_ISTAT),a				
+$$:				ld		de,(iy+MACDESCRIPTOR.STATUS)
+				ld		a,HIGH(RxCrcError)
+				and		a,d
+				jr		z,$F
+				ld		hl,(ix+rxcrcerror)
+				inc		hl
+				ld		(rxcrcerror),hl
+$$:				ld		a,LOW(RxOVR)
+				and		a,d
+				jr		z,$F
+				ld		hl,(ix+rxover)
+				inc		hl
+				ld		(rxover),hl
+$$:				ld		de,(iy+MACDESCRIPTOR.NP)
+				out0	(EMAC_RRP_L),e
+				out0	(EMAC_RRP_H),d
+				ld		(ix+rxrp),de
+				pop		iy
 				ret
 		
 $sysirq:		push	af
-				push	bc
 				push	de
 				push	hl
 				push	ix
+				ld		d,0
 				ld		ix,emacstat
 				in0		e,(EMAC_ISTAT)
 				ld		a,e
-				tst		a, TxFSMERR_STAT
+				and		a, TxFSMERR_STAT
 				jr		z,$F
+				ld		d, a
 				ld		a,HRTFN|HRTMC
 				out0	(EMAC_RST),a
 				xor		a,a
@@ -40,28 +128,27 @@ $sysirq:		push	af
 				ld		hl,(ix+txfsmerr)
 				inc		hl
 				ld		(ix+txfsmerr),hl
-				ld		a, TxFSMERR_STAT
-				out0	(EMAC_ISTAT),a
-				ld		a,e
-$$:				tst		a,MGTDONE_STAT
+$$:				ld		a,e
+				and		a,MGTDONE_STAT
 				jr		z,$F
+				ld		(mgdonesem),a
+				or		a,d
+				ld		d,a
 				ld		hl,(ix+mgtdone)
 				inc		hl
 				ld		(ix+mgtdone),hl
-				ld		a, MGTDONE_STAT
-				out0	(EMAC_ISTAT),a
-				ld		a,e
-$$:				tst		a,Rx_OVR_STAT
+$$:				ld		a,e
+				and		a,Rx_OVR_STAT
 				jr		z,$F
+				or		a,d
+				ld		d,a
 				ld		hl,(ix+rxovr)
 				inc		hl
 				ld		(ix+rxovr),hl
-				ld		a, Rx_OVR_STAT
-				out0	(EMAC_ISTAT),a
-$$:				pop		ix
+$$:				out0	(EMAC_ISTAT),d
+				pop		ix
 				pop		hl
 				pop		de
-				pop		bc
 				pop		af
 				ei
 				reti
@@ -72,35 +159,17 @@ $rxirq:			push	af
 				push	hl
 				push	ix
 				ld		ix,emacstat
-				in0		e,(EMAC_ISTAT)
-				ld		a,e
+				in0		a,(EMAC_ISTAT)
 				tst		a,Rx_CF_STAT
-				jr		z,$F
-				ld		hl,(ix+ctlfrm)
-				inc		hl
-				ld		(ix+ctlfrm),hl
-				call	$rxcontrolframe
-				ld		a, Rx_CF_STAT
-				out0	(EMAC_ISTAT),a
-				ld		a,e
-$$:				tst		a,Rx_PCF_STAT
-				jr		z,$F
-				ld		hl,(ix+pctlfrm)
-				inc		hl
-				ld		(ix+pctlfrm),hl
-				call	$rxpcontrolframe
-				ld		a, Rx_PCF_STAT
-				out0	(EMAC_ISTAT),a
-				ld		a,e				
- $$:			tst		a,Rx_DONE_STAT
-				jr		z,$F
-				ld		hl,(ix+rxdone)
-				inc		hl
-				ld		(ix+rxdone),hl
-				call	$rxdoneframe
-				ld		a, Rx_DONE_STAT
-				out0	(EMAC_ISTAT),a				
-$$:				pop		ix
+				call	nz,$rxcontrolframe
+				nop
+				tst		a,Rx_PCF_STAT
+				call	nz,$rxpcontrolframe
+				nop
+				tst		a,Rx_DONE_STAT
+				call	nz,$rxdoneframe
+				nop
+				pop		ix
 				pop		hl
 				pop		de
 				pop		bc
@@ -279,7 +348,7 @@ $$:				ld		a,ffh
 				out0	(EMAC_CFG3),a
 				ld		a,RxEN
 				out0	(EMAC_CFG4),a
-				ld		a,BCM|PROM;|QCM
+				ld		a,MCM|BCM;|PROM;|QCM
 				out0	(EMAC_AFR),a
 				xor		a,a
 				out0	(EMAC_MAXF_L),a
@@ -289,12 +358,6 @@ $$:				ld		a,ffh
 				out0	(EMAC_MIIMGT),a
 				ld		a,HRTFN|HRRFN|HRTMC|HRRMC
 				out0	(EMAC_RST),a
-				call	init_phy
-				ld		a,0
-				out0	(EMAC_RST),a
-				ret		z
-				dec		a
-				out0	(EMAC_ISTAT),a
 				ld		hl,$rxirq
 				push	hl
 				ld		hl,EMAC_Rx_IVECT
@@ -316,6 +379,14 @@ $$:				ld		a,ffh
 				call	_set_vector
 				pop		hl
 				pop		hl
+				ld		a,MGTDONE
+				out0	(EMAC_IEN),a
+				call	init_phy
+				ld		a,0
+				out0	(EMAC_RST),a
+				ret		z
+				dec		a
+				out0	(EMAC_ISTAT),a
 				ld		a,TxFSMERR|MGTDONE|Rx_CF|Rx_PCF|Rx_DONE|Rx_OVR|Tx_CF|Tx_DONE
 				out0	(EMAC_IEN),a
 				or		a,a

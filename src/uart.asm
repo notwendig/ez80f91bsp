@@ -314,9 +314,7 @@ $ex:		pop		de
 			pop		de
 			ret
 			
-			
-			
-			
+		
 	xref uart0_gets						; de => c-str, bc = max
 uart0_gets:
 	; todo
