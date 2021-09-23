@@ -314,8 +314,16 @@ $ex:		pop		de
 			pop		de
 			ret
 			
-			
-			
+	xdef uart0_flush
+uart0_flush:ld		a,i
+			ret		po
+			push	ix
+			ld		ix,uart0
+$$:			ld		a,(ix+wtx)			
+			cp		a,(ix+rtx)
+			jr		nz,$B
+			pop		ix
+			ret
 			
 	xref uart0_gets						; de => c-str, bc = max
 uart0_gets:

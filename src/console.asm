@@ -6,17 +6,32 @@
 	xdef	puts
 	xdef	getc
 	xdef	gets
+	xdef 	flush
 	
 	segment CODE
 	.assume ADL=1
 
-kbhit:	jp	uart0_kbhit
-putc:	jp	uart0_putc
-puts:	jp	uart0_puts	
-getc:	jp	uart0_getc
-gets:	jp	uart0_gets
+kbhit:		jp	uart0_kbhit
+puts:		jp	uart0_puts	
+getc:		jp	uart0_getc
+gets:		jp	uart0_gets
+flush:		jp	uart0_flush
 	
-
+putc:		push	bc
+			ld		b,0
+$$:			push	af
+			call	uart0_putc
+			jr		nz,$F
+			pop		af
+			djnz	$B
+			pop		bc
+			xor		a,a
+			ret
+$$:			pop		bc
+			pop		bc
+			ret
+			
+			
 	xdef strlen		;hl=>c-str, ret len in bc; zf=1 strlen 0
 strlen:		push	hl
 			ld		bc,0

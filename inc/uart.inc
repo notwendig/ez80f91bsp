@@ -8,6 +8,7 @@
 	xref uart0_getc						; char => a
 	xref uart0_puts						; hl => c-str; ret hl = chars printed
 	xref uart0_gets						; de => c-str, bc = max
+	xref uart0_flush
 	
 UARTCFG			struct
 divisor			DS		2

@@ -101,6 +101,8 @@ rxwp:			DS		3
 rxrp:			DS		3
 txcf:			DS		3
 txdone:			DS		3	
+rxcrcerror:		DS		3
+rxover:			DS		3	
 EMACSTATSZ		endstruct EMACSTAT
 
 EMACERR_SETMAC	.equ	-1

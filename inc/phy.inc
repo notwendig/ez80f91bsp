@@ -10,13 +10,26 @@ PHY_LINK_EST		.equ	04h
 ;
 ; Common Phy registers.
 ;
-PHY_CREG			.equ	0
-PHY_SREG			.equ	1
-PHY_ID1_REG			.equ	2
-PHY_ID2_REG			.equ	3
-PHY_ANEG_ADV_REG	.equ	4
-PHY_DIAG_REG		.equ	18
-PHY_MODE_CTRL_REG	.equ	21
+PHY_CREG			.equ	0		; MII Management Control Register
+PHY_SREG			.equ	1       ; MII Management Status Register
+PHY_ID1_REG			.equ	2       ; PHY Identifier 1 Register
+PHY_ID2_REG			.equ	3       ; PHY Identifier 2 Register
+PHY_ANEG_ADV_REG	.equ	4       ; Auto-Negotiation Advertisement Register
+PHY_ANEG_LPA_REG	.equ	5		; Auto-Negotiation Link Partner Ability Register
+PHY_ANEG_EXP_REG	.equ	6		; Auto-Negotiation Expansion Register
+PHY_NPADV_REG		.equ	7		; Next Page Advertisement Register
+						;	8-15	  Reserved
+PHY_MISCFEAT_REG	.equ	16		; Miscellaneous Features Register
+PHY_ICTL_ISTAT_REG	.equ	17		; Interrupt Control/Status Register
+PHY_DIAG_REG		.equ	18      ; Diagnostic Register
+PHY_MP_LB_REG		.equ	19		; Power Management & Loopback Register
+						;	20		; Reserved
+PHY_MODE_CTRL_REG	.equ	21      ; Mode Control Register
+						;	22		  Reserved
+PHY_DISCON_CNT_REG	.equ	23		; Disconnect Counter
+PHY_RXERR_CNT		.equ	24		; Receive Error Counter
+						;	25-31 	  Reserved
+
 ;
 ; MII Management Control Register (Register 0) bit definitions
 ;
@@ -61,6 +74,8 @@ PHY_ANEG_802_3		.equ	0001h
 ;
 PHY_GPSI_EN			.equ	0800h
 
+	xref mgdonesem
+
 ;
 ; Function prototypes
 ;
@@ -74,3 +89,7 @@ PHY_GPSI_EN			.equ	0800h
 ; read phy register in A store the value in BC (UMB is undifined)
 ;
 	xref RdPhyReg
+	
+	xref PhyStatus		; print Phy status
+	
+	xref IsPhyConnected	; a != 0 connected

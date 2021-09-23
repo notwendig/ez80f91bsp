@@ -9,7 +9,9 @@
 <file filter-key="">src\emac.asm</file>
 <file filter-key="">test\init_params_f91.asm</file>
 <file filter-key="">test\main.asm</file>
+<file filter-key="">src\malloc.asm</file>
 <file filter-key="">src\phy.asm</file>
+<file filter-key="">src\printf.asm</file>
 <file filter-key="">src\uart.asm</file>
 <file filter-key="">test\vectors24.asm</file>
 <file filter-key="">test\zsldevinitdummy.asm</file>
@@ -218,6 +220,13 @@ DEFINE __len_code = length of CODE</option>
 
 <!-- breakpoint information -->
 <breakpoints>
+<breakpoint temporary="false" enabled="false" >
+<line-number>106</line-number>
+<pathname>Z:\workspace\ez80f91bsp\test\main.asm</pathname>
+<address>1513</address>
+<command></command>
+<preserve-type>0</preserve-type>
+</breakpoint>
 </breakpoints>
 
 </project>
