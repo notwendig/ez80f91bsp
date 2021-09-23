@@ -6,6 +6,9 @@
 <file filter-key="">src\bsp.asm</file>
 <file filter-key="">src\console.asm</file>
 <file filter-key="">src\emac.asm</file>
+<file filter-key="">src\malloc.asm</file>
+<file filter-key="">src\phy.asm</file>
+<file filter-key="">src\printf.asm</file>
 <file filter-key="">src\uart.asm</file>
 </files>
 
@@ -15,7 +18,7 @@
 <tools>
 <tool name="Assembler">
 <options>
-<option name="define" type="string" change-action="assemble">_EZ80ACCLAIM!=1</option>
+<option name="define" type="string" change-action="assemble">_EZ80ACCLAIM!=1,DEBUG=1</option>
 <option name="include" type="string" change-action="assemble">inc</option>
 <option name="list" type="boolean" change-action="none">true</option>
 <option name="listmac" type="boolean" change-action="none">true</option>
@@ -106,12 +109,12 @@
 <tool name="Assembler">
 <options>
 <option name="define" type="string" change-action="assemble">_EZ80ACCLAIM!=1</option>
-<option name="include" type="string" change-action="assemble"></option>
+<option name="include" type="string" change-action="assemble">inc</option>
 <option name="list" type="boolean" change-action="none">true</option>
-<option name="listmac" type="boolean" change-action="none">false</option>
+<option name="listmac" type="boolean" change-action="none">true</option>
 <option name="name" type="boolean" change-action="none">true</option>
 <option name="pagelen" type="integer" change-action="none">0</option>
-<option name="pagewidth" type="integer" change-action="none">80</option>
+<option name="pagewidth" type="integer" change-action="none">132</option>
 <option name="quiet" type="boolean" change-action="none">true</option>
 <option name="sdiopt" type="boolean" change-action="compile">true</option>
 </options>
@@ -150,12 +153,12 @@
 <option name="debug" type="boolean" change-action="assemble">false</option>
 <option name="debugcache" type="boolean" change-action="none">false</option>
 <option name="igcase" type="boolean" change-action="assemble">false</option>
-<option name="outputdir" type="string" change-action="compile">.\Release\</option>
+<option name="outputdir" type="string" change-action="compile">Release\</option>
 </options>
 </tool>
 <tool name="Librarian">
 <options>
-<option name="outfile" type="string" change-action="build">.\Release\libbsp.lib</option>
+<option name="outfile" type="string" change-action="build">.\libbsp.lib</option>
 </options>
 </tool>
 <tool name="Linker">
