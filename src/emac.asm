@@ -6,6 +6,7 @@
 	
 	XREF	_set_vector
 	XREF	__FLASH_CTL_INIT_PARAM
+	XREF	rxeth	;hl frame
 	segment DATA
 
 	segment BSS
@@ -16,44 +17,6 @@ emacstat:		DS		EMACSTATSZ
 	segment CODE
 	.assume  ADL=1
 	
-	; iy => MACDESCRIPTOR
-	with MACDESCRIPTOR
-$prnt_descr:	push	hl
-				push	iy
-				call	prnt_u24_hex
-				ld		a,'>'
-				call	putc
-				ld		hl,(iy+NP)		; next
-				call	prnt_u24_hex
-				ld		a,','
-				call	putc
-				ld		hl,(iy+PKTSIZE)
-				call	prnt_u16_hex
-				ld		a,','
-				call	putc
-				ld		hl,(iy+STATUS)
-				call	prnt_u16_hex
-				ld		a,' '
-				call	putc
-				lea		iy,iy+MACDESCRIPTORSZ
-	with ETHHDR			
-				lea		hl,iy+destmac
-				call	prnt_mac
-				ld		a,','
-				call	putc
-				lea		hl,iy+srcmac
-				call	prnt_mac
-				ld		a,','
-				call	putc
-				ld		h,(iy+lentype)
-				ld		l,(iy+lentype+1)
-				call	prnt_u16_hex
-				ld		a,0ah
-				call	putc
-				pop		iy
-				pop		hl
-				ret
-	endwith
 				
 	with  EMACSTAT
 
@@ -73,8 +36,45 @@ $rxpcontrolframe:ld		hl,(ix+pctlfrm)
 
 $rxdoneframe:	push	iy
 				ld		iy,(ix+rxrp)
-				ld		hl,(ix+rxrp)
-				call	$prnt_descr
+				xor		a,a
+				sbc		hl,hl
+				ld		l,(iy+MACDESCRIPTOR.PKTSIZE)
+				ld		h,(iy+MACDESCRIPTOR.PKTSIZE+1)
+				ld		de,MACDESCRIPTORSZ
+				add		hl,de
+				ld		bc,hl				;tot-size
+				call	malloc
+				jr		z,$freerx
+				push	hl
+				push	hl					; dest
+				ld		hl,iy
+				push	hl					; src
+				add		hl,bc
+				ld		de,(ix+cfg.rhbp)
+				xor		a,a
+				sbc		hl,de		
+				ex		de,hl				; wrap size
+				pop		hl
+				jr		z,$nowrap
+				jr		c,$nowrap
+				ld		hl,bc
+				xor		a,a
+				sbc		hl,de
+				ld		bc,hl
+				ex		de,hl
+				pop		de
+				push	hl
+				ld		hl,iy
+				ldir	
+				pop		bc
+				ld		hl,(ix+cfg.bp)
+				jr		$F
+$nowrap:		pop		de
+$$:				ldir
+				pop		hl
+				call	rxeth
+				
+$freerx:		ld		hl,(ix+rxrp)
 				ld		hl,(ix+rxdone)
 				inc		hl
 				ld		(ix+rxdone),hl
@@ -348,7 +348,7 @@ $$:				ld		a,ffh
 				out0	(EMAC_CFG3),a
 				ld		a,RxEN
 				out0	(EMAC_CFG4),a
-				ld		a,MCM|BCM;|PROM;|QCM
+				ld		a,MCM|BCM|PROM;|QCM
 				out0	(EMAC_AFR),a
 				xor		a,a
 				out0	(EMAC_MAXF_L),a

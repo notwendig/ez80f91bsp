@@ -6,6 +6,7 @@
 	xdef	puts
 	xdef	getc
 	xdef	gets
+	xdef 	flush
 	
 	segment CODE
 	.assume ADL=1
@@ -14,6 +15,7 @@ kbhit:		jp	uart0_kbhit
 puts:		jp	uart0_puts	
 getc:		jp	uart0_getc
 gets:		jp	uart0_gets
+flush:		jp	uart0_flush
 	
 putc:		push	bc
 			ld		b,0

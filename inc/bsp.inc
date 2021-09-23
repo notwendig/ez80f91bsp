@@ -3,11 +3,13 @@
 	.include "ez80f91.inc"
 	.include "intvect.inc"
 	.include "console.inc"
+	.include "malloc.inc"
 	.include "uart.inc"
 	.include "emac.inc"
 	.include "phy.inc"
 	list
-	
+
+
 ; System hardware config
 	XREF __CS0_LBR_INIT_PARAM 
 	XREF __CS0_UBR_INIT_PARAM 

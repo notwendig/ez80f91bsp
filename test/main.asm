@@ -32,22 +32,147 @@ uart0cfg:
 
 init_uart0_ok:ascii "init UART0 115200 ,8,1,n RTS/CTS.",0
 	
+	segment DATA
+iethstack:	dw24	ethstack
+oethstack:	dw24	ethstack
+	
+	segment BSS
+	.align 100h
+ethstack:	ds	103h
+	
+	xdef HEAPSIZE
+HEAPSIZE	.equ	10000h	
+	xdef heapstart
+heapstart:	ds	HEAPSIZE
 
 	segment CODE
 	.assume adl=1
 	xdef	_main
 _main:	
 ;			ld		iy,bspcfg
+
 			call	init_bsp
 			
+			ld		hl,heapstart
+			ld		bc,HEAPSIZE
+			call	init_heap
 			ld		iy,uart0cfg
 			call	init_uart0
 			ld		hl,init_uart0_ok
 			call	puts
 			
+			call	heapdump
+			ld		a,0ah
+			call	putc
+			
+			ld		bc,1
+$m0:		call	malloc
+			jr		z,$F
+			ex		de,hl
+			call	malloc
+			jr		z,$m1
+			call	heapdump
+			ld		a,0ah
+			call	putc
+			ex		de,hl
+			call	free
+			ex		de,hl
+			call	free
+			call	heapdump
+			ld		a,0ah
+			call	putc
+			ld		hl,bc
+			add		hl,bc
+			ld		bc,hl
+			jr		nz,$m0
+			jr		$F
+$m1:		ex		de,hl
+			call	free
+			call	heapdump
+			ld		a,0ah
+			call	putc
+$$:	
+			
+			
+
+			
 			ld		iy,emaccfg
 			call	init_emac
 			call	PhyStatus
-			ret 
+			jr		$prnt_descr
+			
 	
+	XDEF	rxeth	;hl frame
+rxeth:			push	hl
+				ld		de,(iethstack)
+				inc		e
+				jr		z,$F
+				inc		e
+				jr		z,$F
+				inc		e
+$$:				ld		hl,(oethstack)
+				xor		a,a
+				sbc		hl,de
+				jr		nz,$F
+				pop		hl
+				call	free
+				ret		
+$$:				ld		hl,(iethstack)
+				ld		(iethstack),de
+				pop		de
+				ld		(hl),de
+				ret
+			
+	with MACDESCRIPTOR
+
+$prnt_descr:	ld		de,(oethstack)
+				ld		hl,(iethstack)
+				xor		a,a
+				sbc		hl,de
+				jr		z,$prnt_descr
+				ld		hl,de
+				inc		e
+				jr		z,$F
+				inc		e
+				jr		z,$F
+				inc		e
+$$:				cp		a,l
+				call	z,heapdump
+				ld		iy,(hl)				
+				ld		(oethstack),de
+				call	prnt_u24_hex
+				ld		a,'>'
+				call	putc
+				ld		hl,(iy+NP)		; next
+				call	prnt_u24_hex
+				ld		a,','
+				call	putc
+				ld		hl,(iy+PKTSIZE)
+				call	prnt_u16_hex
+				ld		a,','
+				call	putc
+				ld		hl,(iy+STATUS)
+				call	prnt_u16_hex
+				ld		a,' '
+				call	putc
+				lea		ix,iy+MACDESCRIPTORSZ
+	with ETHHDR			
+				lea		hl,ix+destmac
+				call	prnt_mac
+				ld		a,','
+				call	putc
+				lea		hl,ix+srcmac
+				call	prnt_mac
+				ld		a,','
+				call	putc
+				ld		h,(ix+lentype)
+				ld		l,(ix+lentype+1)
+				call	prnt_u16_hex
+				ld		a,0ah
+				call	putc
+				ld		hl,iy
+				call	free
+				jr		$prnt_descr
+	endwith
+
 	END 
