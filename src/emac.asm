@@ -226,7 +226,7 @@ send_emac:		push	ix
 				push	hl					; hl => next
 				ld		de,(ix+cfg.bp)
 				sbc		hl,de				; hl = next - end of txram
-				jr		c,$F				
+				jr		c,$F				; 
 				ld		de,(ix+cfg.tlbp)
 				add		hl,de				
 				ex		(sp),hl

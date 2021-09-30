@@ -12,6 +12,7 @@
 <file filter-key="">src\malloc.asm</file>
 <file filter-key="">src\phy.asm</file>
 <file filter-key="">src\printf.asm</file>
+<file filter-key="">src\task.asm</file>
 <file filter-key="">src\uart.asm</file>
 <file filter-key="">test\vectors24.asm</file>
 <file filter-key="">test\zsldevinitdummy.asm</file>
