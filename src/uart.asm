@@ -303,7 +303,7 @@ $$:			ld		a,(hl)
 			or		a,a
 			jr		z,$F
 			call	uart0_putc
-			jr		z,$ex
+			jr		z,$B
 			inc		hl
 			jr		$B
 $$:			ld		a,0ah

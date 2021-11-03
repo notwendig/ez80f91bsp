@@ -7,6 +7,7 @@
 	.include "uart.inc"
 	.include "emac.inc"
 	.include "phy.inc"
+	.include "task.inc"
 	list
 
 
@@ -60,3 +61,4 @@
 	xref critical_end
 	xref fatal
 
+TMR0_IVECT	.equ	54h

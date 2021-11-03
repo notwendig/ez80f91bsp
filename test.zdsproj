@@ -12,6 +12,7 @@
 <file filter-key="">src\malloc.asm</file>
 <file filter-key="">src\phy.asm</file>
 <file filter-key="">src\printf.asm</file>
+<file filter-key="">src\queue.asm</file>
 <file filter-key="">src\task.asm</file>
 <file filter-key="">src\uart.asm</file>
 <file filter-key="">test\vectors24.asm</file>
@@ -221,10 +222,10 @@ DEFINE __len_code = length of CODE</option>
 
 <!-- breakpoint information -->
 <breakpoints>
-<breakpoint temporary="false" enabled="false" >
-<line-number>106</line-number>
-<pathname>Z:\workspace\ez80f91bsp\test\main.asm</pathname>
-<address>1513</address>
+<breakpoint temporary="false" enabled="true" >
+<line-number>50</line-number>
+<pathname>Z:\workspace\ez80f91bsp\test\vectors24.asm</pathname>
+<address>1</address>
 <command></command>
 <preserve-type>0</preserve-type>
 </breakpoint>

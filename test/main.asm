@@ -1,5 +1,7 @@
  	.include "bsp.inc"
 	
+	xref readyq	
+	
 		segment TEXT
 
 QUOT	macro	label
@@ -10,7 +12,7 @@ BUFSZ	macro	sz
 		db	BUFSZ&sz	; bufsz register constant
 		db	sz-1		; bufalign
 	endmacro BUFSZ
-	
+
 	xdef emaccfg 
 emaccfg		.tag	EMACCFG
 emaccfg:
@@ -30,13 +32,29 @@ uart0cfg:
 			dw		((_SYS_CLK_FREQ / BAUDRATE0) / 16)	; divisor baudrate 115200
 			db  	LCTL_CHAR_8_1						; lctl line control 8,1,n
 
-init_uart0_ok:ascii "init UART0 115200 ,8,1,n RTS/CTS.",0
+HZ			EQU		100
+
+	xdef	taskcfg
+taskcfg		.tag	TASKCFG
+taskcfg:	dw24	_SYS_CLK_FREQ / 16 / HZ				; cpu_clock / 16 / HZ
 	
+init_uart0_ok:ascii "init UART0 115200 ,8,1,n RTS/CTS.",0
+idlemsg:	ascii	"Inside IDLE loop.", 0
+
 	segment DATA
 iethstack:	dw24	ethstack
 oethstack:	dw24	ethstack
+
+IDLE	.tag TASK	
+IDLE:		blkb	QUEUESZ,0
+
 	
 	segment BSS
+IDLESTACKSZ	.equ	500	
+idlestack:	ds		IDLESTACKSZ
+	
+linebuf:	ds		128
+	
 	.align 100h
 ethstack:	ds	103h
 	
@@ -49,6 +67,7 @@ heapstart:	ds	HEAPSIZE
 	.assume adl=1
 	xdef	_main
 _main:	
+			
 ;			ld		iy,bspcfg
 
 			call	init_bsp
@@ -60,10 +79,62 @@ _main:
 			call	init_uart0
 			ld		hl,init_uart0_ok
 			call	puts
+
+			ld		b,0
+next:		ld		hl,0
+			ld		l,b
+			ld		ix,linebuf
+			push	bc
+			call	Num2Dec
+$$:			inc		ix
+			ld		a,(ix)
+			or		a,a
+			jr		nz,$B
+			ld		(ix),' '
+			inc		ix
+			ld		hl,128
+			call	Num2Dec
+$$:			inc		ix
+			ld		a,(ix)
+			or		a,a
+			jr		nz,$B
+			ld		(ix),' '
+			inc		ix
+			ld		a,128
+			scf
+			;or		a,a
+			pop		bc
+			push	bc
+			sbc		a,b
+			jr		c,$F
+			neg		a
+$$:			ld		hl,0
+			ld		l,a
+			call	Num2Dec
+			ld		hl,linebuf
+			call	puts
+			pop		bc
+			djnz	next
+$$:			jr		$B
+
+
+			; iy = task; a = priority, bc = stacksize, hl = stackbot, de = entry
+			ld		iy,IDLE
+			ld		a,0
+			ld		bc,IDLESTACKSZ
+			ld		hl,idlestack
+			ld		de,idle
+			call	tasksetup
+			call	addready
+			
+			ld		ix,taskcfg
+			call	init_scheduler
+$$:			nop
 			
 			call	heapdump
 			ld		a,0ah
 			call	putc
+			jr		$B
 			
 			ld		bc,1
 $m0:		call	malloc
@@ -175,4 +246,15 @@ $$:				cp		a,l
 				jr		$prnt_descr
 	endwith
 
+idle:			ld		hl,idlemsg
+$$:				nop
+				djnz 	$B
+				call	puts
+				ld		de,idlemsg
+				add		hl,de
+				ld		a,(hl)
+				or		a,a
+				jr		nz,$B
+				ex		de,hl
+				jr		$B
 	END 

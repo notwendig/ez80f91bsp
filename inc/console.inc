@@ -5,6 +5,12 @@
 	xref kbhit		; a!=0 => key pressed 
 	xref flush
 	
+	;Inputs:	
+;     HL	Num, ix = tmpbuf > 8
+;Outputs:
+;	ix	ptr c-str dec-ascii,c = len
+	xref Num2Dec
+
 	xref prnt_u24_int	; IN: hl=int, d=size, e=fill
 	xref prnt_u8_hex	; IN: a=int
 	xref prnt_u16_hex	; IN: hl=int

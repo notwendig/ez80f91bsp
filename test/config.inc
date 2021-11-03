@@ -1,0 +1,1 @@
+HEAPSIZE	.equ	10000h
