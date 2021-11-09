@@ -1,5 +1,8 @@
 
-	nolist
+ifndef _BSP_INC_
+_BSP_INC_	.equ	1
+
+;	nolist
 	.include "ez80f91.inc"
 	.include "intvect.inc"
 	.include "console.inc"
@@ -7,6 +10,7 @@
 	.include "uart.inc"
 	.include "emac.inc"
 	.include "phy.inc"
+	.include "task.inc"
 	list
 
 
@@ -60,3 +64,4 @@
 	xref critical_end
 	xref fatal
 
+TMR0_IVECT	.equ	54h

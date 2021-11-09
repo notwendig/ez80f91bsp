@@ -14,7 +14,7 @@ d10:	dw24	-10000000
 	segment	code
 	.assume adl=1
 
-
+	xdef Num2Dec
 ;Inputs:	
 ;     HL	Num, ix = tmpbuf > 8
 ;Outputs:

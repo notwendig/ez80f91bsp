@@ -1,4 +1,4 @@
-	nolist
+;	nolist
 	.include "uart.inc"
 	.include "console.inc"
 	list
@@ -72,25 +72,31 @@ $skiprbr:	in0		a,(UART0_RBR)
 $$:			ret
 			
 			scope
-			; 010 2 Second	Receive Data Ready or Trigger Level
-i_rdr:		in0		b,(UART0_RBR)		; read byte
-			ld		hl,(ix+wrx)
-			ld		a,(ix+rrx)
-			dec		a
-			cp		a,l
-			jr		z,$F
-			ld		(hl),b
-			inc		(ix+wrx)
-			ret
-			
-$$:			in0		a,(UART0_MCTL)
-			and		a,~UART_MCTL_RTS
-			out0	(UART0_MCTL),a
-			ld		hl,(ix+dropedrx)
+$drop:		ld		hl,(ix+dropedrx)
 			inc		hl
 			ld		(ix+dropedrx),hl
-			ret
-	
+$rtsn:		in0		a,(UART0_MCTL)
+			and		a,~UART_MCTL_RTS
+			out0	(UART0_MCTL),a
+$rdrn:		in0		a,(UART0_LSR)
+			tst		UART_LSR_DR
+			ret		z
+			
+			; 010 2 Second	Receive Data Ready or Trigger Level
+i_rdr:		in0		b,(UART0_RBR)		; read byte
+			ld		hl,(ix+wrx)			; write idx
+			ld		a,(ix+rrx)			; read idx
+			scf
+			sbc		l
+			jr		z,$drop		
+			jr		nc,$F				; read idx <= write idx = spaces
+			add		a,ffh				; wrap
+$$:			ld		(hl),b				; queue byte
+			inc		(ix+wrx)			; inc write idx
+$$:			sub		a,(ix+cfg.hrx)		
+			jr		nz,$rdrn			; not on high-water mark				
+			jr		$rtsn	
+			
 			scope
 			; 110 6 Third	Character Time-out
 i_cto:		ld		hl,(ix+cto)
@@ -111,9 +117,9 @@ i_tbe:		ld		bc,0101h
 			jr		nc,$F				; FIFO not uset
 			ld		bc,0F0Fh			; FIFO takes 16 bytes
 			ld		hl,(ix+rtx)
-			ld		a,(ix+wtx)
-$$:			cp		a,l					;w-r			
-			jr		z,$F				;w<r; a=used
+$$:			ld		a,(ix+wtx)
+			sub		a,l
+			jr		z,$F				; empty
 			ld		e,(hl)
 			out0	(UART0_THR),e
 			inc		l
@@ -152,6 +158,7 @@ i_nc:									; 100 111 4,7	not sed
 			ret
 	
 			scope		
+
 $jmphl:		jp		(hl)
 
 Uart0IRQ:	push	af
@@ -200,7 +207,6 @@ init_uart0:
 			lea		de,ix+cfg
 			ld		bc,UARTCFGSZ
 			ldir
-			
 			ld		a, UART_LCTL_DLAB	; 80h
 			out0	(UART0_LCTL), a		; Enable access to BRG.
 			ld		a, (ix+cfg.divisor)
@@ -245,8 +251,8 @@ uart0_putc:	push	ix
 			ld		ix,uart0
 			ld		hl,(ix+wtx)
 			ld		a,(ix+rtx)
-			dec		a
-			sub		a,l
+			scf
+			sbc		a,l
 			jr		z,$F
 			ld		(hl),c
 			inc		(ix+wtx)
@@ -288,8 +294,17 @@ uart0_getc:	push	ix
 $$:			ld		hl,(ix+rrx)
 			ld		a,(ix+wrx)
 			sub		a,l					;w-r
-			jr		z,$B
-			ld		a,(hl)
+			jr		nz,$F
+			in0		a,(UART0_MCTL)
+			or		a,UART_MCTL_RTS
+			out0	(UART0_MCTL),a
+			jr		$B
+$$:			sub		(ix+cfg.lrx)
+			jr		nz,$F
+			in0		a,(UART0_MCTL)
+			or		a,UART_MCTL_RTS
+			out0	(UART0_MCTL),a
+$$:			ld		a,(hl)
 			inc		(ix+rrx)
 			pop		hl
 			pop		ix
@@ -303,7 +318,7 @@ $$:			ld		a,(hl)
 			or		a,a
 			jr		z,$F
 			call	uart0_putc
-			jr		z,$ex
+			jr		z,$B
 			inc		hl
 			jr		$B
 $$:			ld		a,0ah

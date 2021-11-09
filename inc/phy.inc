@@ -1,3 +1,7 @@
+
+ifndef _PHY_INC_
+_PHY_INC_	.equ	1
+
 ; PHY AMD79C874
 
 MGTBUSY				.equ	80h
@@ -93,3 +97,5 @@ PHY_GPSI_EN			.equ	0800h
 	xref PhyStatus		; print Phy status
 	
 	xref IsPhyConnected	; a != 0 connected
+	
+endif ; _PHY_INC_	

@@ -1,4 +1,8 @@
 
+ifndef _UART_INC_
+_UART_INC_	.equ	1
+
+
 .include "macros.inc"
 
 	xref _SYS_CLK_FREQ
@@ -11,16 +15,21 @@
 	xref uart0_flush
 	
 UARTCFG			struct
-divisor			DS		2
-lctl			DB		1
+divisor:		DS		2
+lctl:			DS		1
+lrx:			DS		1
+hrx:			DS		1
+ltx:			DS		1
+htx:			DS		1
 UARTCFGSZ		endstruct UARTCFG
 
 UARTSTAT		struct	
 cfg				.tag	UARTCFG
+.align 3
 rrx:			DS		3
 wrx:			DS		3	
 rtx:			DS		3
-wtx:			DS		3
+wtx:			DS		3	
 dropedrx:		DS		3
 dropedtx:		DS		3
 lsr_err:		DS		3
@@ -238,3 +247,5 @@ UART_MSR_DCTS	.equ	00000001b		; 0-1 Delta Status Change of CTS. This bit is set 
 
 UART0_SPR		.equ	C7h				; UART Scratch Pad Register
 UART1_SPR		.equ	D7h				;	The UARTx_SPR register is used by the system as a general-purpose Read/Write register.
+
+endif ; _UART_INC_
