@@ -1,3 +1,7 @@
+
+ifndef _MACROS_INC_
+_MACROS_INC_	.equ	1
+
 ; Save Interrupt State
 SAVEIMASK MACRO
     ld a, i                    ; sets parity bit to value of IEF2
@@ -56,3 +60,4 @@ RESTORCONTEXT	MACRO
 $$:	pop		af
 	ENDMACRO
 
+endif ; _MACROS_INC_

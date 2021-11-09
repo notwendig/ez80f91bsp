@@ -1,3 +1,7 @@
+
+ifndef _TASK_INC_
+_TASK_INC_	.equ	1
+
 	include "queue.inc"
 
 	MAXPRIO	.equ	16
@@ -21,3 +25,5 @@ TASKCFGSZ	endstruct
 	xref 	tasksetup						; iy = task; a = priority, bc = stacksize, hl = stackbot, de = entry
 	xref	addready						; iy = task
 	xref	rmvready						; iy = task
+
+endif ; _TASK_INC_

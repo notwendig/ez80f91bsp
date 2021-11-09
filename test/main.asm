@@ -31,7 +31,11 @@ uart0cfg	.tag	UARTCFG
 uart0cfg:
 			dw		((_SYS_CLK_FREQ / BAUDRATE0) / 16)	; divisor baudrate 115200
 			db  	LCTL_CHAR_8_1						; lctl line control 8,1,n
-
+			db  	230									; lrx
+			db  	20									; hrx
+			db  	230									; ltx
+			db  	20									; htx
+	
 HZ			EQU		100
 
 	xdef	taskcfg
@@ -47,13 +51,13 @@ oethstack:	dw24	ethstack
 
 IDLE	.tag TASK	
 IDLE:		blkb	QUEUESZ,0
-
+	
+linebuf:	db		0ah,0
 	
 	segment BSS
 IDLESTACKSZ	.equ	500	
 idlestack:	ds		IDLESTACKSZ
-	
-linebuf:	ds		128
+
 	
 	.align 100h
 ethstack:	ds	103h
@@ -79,40 +83,45 @@ _main:
 			call	init_uart0
 			ld		hl,init_uart0_ok
 			call	puts
+if 1
+echo:		call	getc
+			ld		b,a
+$$:			ld		a,b
+			call	putc	
+			jr		z,$B	
+			jr		echo
+endif
 
 			ld		b,0
 next:		ld		hl,0
 			ld		l,b
 			ld		ix,linebuf
 			push	bc
-			call	Num2Dec
-$$:			inc		ix
-			ld		a,(ix)
-			or		a,a
-			jr		nz,$B
-			ld		(ix),' '
-			inc		ix
+			ld		de,400h
+			call	prnt_u24_int
 			ld		hl,128
-			call	Num2Dec
-$$:			inc		ix
-			ld		a,(ix)
-			or		a,a
-			jr		nz,$B
-			ld		(ix),' '
-			inc		ix
+			call	prnt_u24_int
 			ld		a,128
-			scf
-			;or		a,a
 			pop		bc
 			push	bc
+			scf
 			sbc		a,b
-			jr		c,$F
-			neg		a
+			jr		nc,$F
+			add		a,ffh
 $$:			ld		hl,0
 			ld		l,a
-			call	Num2Dec
-			ld		hl,linebuf
-			call	puts
+			call	prnt_u24_int
+			pop		bc
+			push	bc
+			ld		a,128
+			sub		a,b
+			jr		nc,$F
+			add		a,ffh
+$$:			ld		hl,0
+			ld		l,a
+			call	prnt_u24_int
+			ld		a,0ah
+			call	putc
 			pop		bc
 			djnz	next
 $$:			jr		$B

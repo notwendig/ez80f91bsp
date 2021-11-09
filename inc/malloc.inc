@@ -1,3 +1,7 @@
+
+ifndef _MALLOC_INC_
+_MALLOC_INC_	.equ	1
+
 		;USES: hl,ix
 		xref init_heap
 
@@ -16,3 +20,5 @@
 		;USES:HL
 		
 		xref	heapdump
+		
+endif ; _MALLOC_INC_		

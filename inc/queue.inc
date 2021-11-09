@@ -1,4 +1,7 @@
 
+ifndef _QUEUE_INC_
+_QUEUE_INC_	.equ	1
+
 
 	xref	qpush			; append in ix = queue, in hl = element, use af
 	xref	qpush_save
@@ -11,3 +14,4 @@ predecessor: ds	3
 succsessor:	ds	3
 QUEUESZ		endstruct
 
+endif ; _QUEUE_INC_

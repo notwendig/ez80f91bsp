@@ -1,4 +1,8 @@
 
+ifndef _EMAC_INC_
+_EMAC_INC_	.equ	1
+
+
 	xref	init_emac	; iy = EMACCFG
 
 EMAC_Rx_IVECT	.equ	40h
@@ -1030,3 +1034,4 @@ RFAE	.equ	00000010b
 ;                0        Receive FIFO not empty
 RFE		.equ	00000001b
 
+endif ; _EMAC_INC_

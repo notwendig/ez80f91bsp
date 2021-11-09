@@ -1,5 +1,8 @@
 
-	nolist
+ifndef _BSP_INC_
+_BSP_INC_	.equ	1
+
+;	nolist
 	.include "ez80f91.inc"
 	.include "intvect.inc"
 	.include "console.inc"
