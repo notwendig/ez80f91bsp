@@ -1,72 +1,63 @@
 # ez80f91bsp
 
-Assembler-Bibliothek für den **Zilog eZ80F91** und das Development Kit.
-Sie stellt Board-, UART-/Konsolen-, Speicher- und Ethernet-Hilfen für native
-ZDS-II-Anwendungen bereit. CAMELF91_24 bindet den Debug-Build als
-`libbspd.lib` ein.
+Assembly library for the **Zilog eZ80F91** development kit. It provides board,
+UART/console, memory and Ethernet helpers for native ZDS II applications.
+CAMELF91_24 links its Debug output as `libbspd.lib`.
 
-## Checkout und Build
+## Checkout and build
 
 ```sh
 git clone https://github.com/notwendig/ez80f91bsp.git
 cd ez80f91bsp
 ```
 
-`libbsp.zdsproj` in ZDS II eZ80Acclaim! 5.3.5 öffnen und **Debug → Rebuild All**
-ausführen. Die Projektdatei stammt ursprünglich aus ZDS 5.3.4 und kann von
-5.3.5 übernommen werden. Der Assembler-Includepfad enthält `inc/`.
+Open `libbsp.zdsproj` in ZDS II eZ80Acclaim! 5.3.5 and select
+**Debug → Rebuild All**. The project originated in 5.3.4 and can be used by
+5.3.5. The assembler include path contains `inc/`.
 
-| Konfiguration | Ausgabe |
+| Configuration | Output |
 | --- | --- |
 | Debug | `libbspd.lib` |
 | Release | `libbsp.lib` |
 
-Die Bibliotheksdateien, Listings, Objekte und IDE-Sitzungen werden nicht
-versioniert. Nach Quelländerungen muss die Bibliothek vor der Anwendung
-neu gebaut werden.
+Library outputs, listings, objects and IDE sessions are not tracked. Rebuild
+the library before the application after source changes.
 
-## Module und Schnittstellen
+## Modules and interfaces
 
-| Quelle | Aufgabe |
+| Source | Purpose |
 | --- | --- |
-| `src/bsp.asm` | Board-Pininitialisierung, kritische Abschnitte, Fehlerhalt |
-| `src/uart.asm` | UART0-Konfiguration, Interrupts und Ringpuffer |
-| `src/console.asm` | Konsolenfunktionen und UART0-Anbindung |
-| `src/malloc.asm` | Heap-Hilfen |
-| `src/emac.asm`, `src/phy.asm` | MAC-/PHY-Hilfen |
-| `src/printf.asm` | Formatierte Ausgabe |
+| `src/bsp.asm` | Board pins, critical sections and failure halt |
+| `src/uart.asm` | UART0 setup, interrupts and ring buffers |
+| `src/console.asm` | Console functions and UART0 connection |
+| `src/malloc.asm` | Heap helpers |
+| `src/emac.asm`, `src/phy.asm` | MAC/PHY helpers |
+| `src/printf.asm` | Formatted output |
 
-`src/queue.asm` und `src/task.asm` sind zusätzliche Quellen; sie stehen nicht
-in der aktuellen Modulauswahl von `libbsp.zdsproj`. Ihre bloße Anwesenheit
-ist kein Nachweis eines geprüften Schedulers oder aller API-Pfade.
-Die Include-Dateien unter `inc/` dokumentieren die jeweiligen Register- und
-Parameterkonventionen.
+Additional `src/queue.asm` and `src/task.asm` are not selected by the current
+library project. Their presence does not establish a tested scheduler or complete
+API coverage. Includes in `inc/` document register/parameter conventions.
 
-## UART und Anwendungseinbindung
+## UART and application integration
 
-`init_bsp` initialisiert die Board-Pins; es ersetzt **nicht** den Aufruf von
-`init_uart0`. Vor der ersten Ausgabe muss die Anwendung eine gültige
-`UARTCFG` anlegen, deren Adresse in `IY` übergeben und `init_uart0` aufrufen.
-Die Struktur umfasst Baudteiler, Leitungseinstellung und vier Pufferschwellen.
-Die Konfiguration hängt vom tatsächlich verwendeten Systemtakt ab.
+`init_bsp` initializes board pins; it does **not** replace `init_uart0`.
+Before output, create a valid `UARTCFG`, pass its address in IY and call
+`init_uart0`. The structure contains baud divisor, line configuration and four
+buffer thresholds, matched to the actual system clock.
 
-Die Konsolenschnittstelle bietet unter anderem `putc`, `puts`, `getc`,
-`gets`, `kbhit` und `flush`; Zeichen für `putc` stehen in `A`.
-UART-Interrupts benötigen eine eingerichtete Vektortabelle, `_set_vector`
-und freigegebene CPU-Interrupts. Der native UART0-Treiber verwendet RTS/CTS.
+Console functions include `putc`, `puts`, `getc`, `gets`, `kbhit` and `flush`;
+`putc` receives its character in A. UART interrupts require vector initialization,
+`_set_vector` and enabled CPU interrupts. The native UART0 driver uses RTS/CTS.
 
-Das Anwendungsprojekt muss den F91-C-/Boardstart und die passenden
-Linkerdefinitionen bereitstellen. `test.zdsproj` samt `test/` ist das
-getrennte Anwendungsbeispiel; `libbsp.zdsproj` baut allein die Bibliothek.
+The application supplies F91 C/board startup and suitable linker definitions.
+`test.zdsproj` and `test/` form a separate example; `libbsp.zdsproj` builds only
+the library.
 
-## Prüfung und Grenzen
+## Evidence and limits
 
-Der native Debug-Build von
-[CAMELF91_24](https://github.com/notwendig/CAMELF91_24) prüft die UART-Konsole
-zusammen mit Forth, Interruptbetrieb und Reset im
-[qemuez80f91-Workspace](https://github.com/notwendig/qemuez80f91).
-Das ist kein vollständiger Hardwaretest aller BSP-Module, insbesondere nicht
-aller EMAC-, Heap-, Queue- oder Task-Funktionen.
-
-Die vorhandenen Urheber- und Nutzungshinweise der Quelldateien bleiben
-maßgeblich; dieses README fügt keine pauschale Lizenzfreigabe hinzu.
+The native [CAMELF91_24](https://github.com/notwendig/CAMELF91_24) Debug build
+exercises the UART console with Forth, interrupts and reset in
+[qemuez80f91](https://github.com/notwendig/qemuez80f91). This does not establish
+all BSP modules on hardware, particularly EMAC, heap, queue or task APIs.
+Existing copyright and usage notices remain authoritative; this README adds no
+blanket license grant.
