@@ -1,5 +1,8 @@
 # ez80f91bsp
 
+[Deutsch](README.de.md)
+
+
 Assembly library for the **Zilog eZ80F91** development kit. It provides board,
 UART/console, memory and Ethernet helpers for native ZDS II applications.
 CAMELF91_24 links its Debug output as `libbspd.lib`.
